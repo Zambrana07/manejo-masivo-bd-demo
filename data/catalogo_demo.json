@@ -1,0 +1,1309 @@
+{
+  "usuario_demo": "Invitado",
+  "subfamilias": [
+    "Subfamilia 1",
+    "Subfamilia 2",
+    "Subfamilia 3",
+    "Subfamilia 4",
+    "Subfamilia 5",
+    "Subfamilia 6",
+    "Subfamilia 7",
+    "Subfamilia 8"
+  ],
+  "unidades": [
+    "Medida 1",
+    "Medida 2",
+    "Medida 3"
+  ],
+  "filtros": [
+    {
+      "clave": "unidad",
+      "titulo": "Medidas",
+      "opciones": [
+        "Medida 1",
+        "Medida 2",
+        "Medida 3"
+      ]
+    },
+    {
+      "clave": "imagen",
+      "titulo": "Filtro imagen",
+      "opciones": [
+        "Con imagen",
+        "Sin imagen"
+      ]
+    },
+    {
+      "clave": "tienda",
+      "titulo": "Filtro tienda",
+      "opciones": [
+        "Marcado",
+        "Sin marcar"
+      ]
+    },
+    {
+      "clave": "precio",
+      "titulo": "Filtro precio",
+      "opciones": [
+        "Marcado",
+        "Sin marcar"
+      ]
+    },
+    {
+      "clave": "stock",
+      "titulo": "Filtro stock",
+      "opciones": [
+        "Con stock",
+        "Stock en 0"
+      ]
+    },
+    {
+      "clave": "seccion",
+      "titulo": "Filtro sección",
+      "opciones": [
+        "Con sección",
+        "Sin sección"
+      ]
+    },
+    {
+      "clave": "cabys",
+      "titulo": "Filtro código",
+      "opciones": [
+        "Con código",
+        "Sin código"
+      ]
+    }
+  ],
+  "claves": [
+    "unidad",
+    "imagen",
+    "tienda",
+    "precio",
+    "stock",
+    "seccion",
+    "cabys"
+  ],
+  "items": [
+    {
+      "id": "d001",
+      "sku": "SKU-001",
+      "nombre": "Artículo demo 1",
+      "subfamilia": "Subfamilia 1",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "No",
+          "Sí"
+        ],
+        "Utilidad %": [
+          "40",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d002",
+      "sku": "SKU-002",
+      "nombre": "Artículo demo 2",
+      "subfamilia": "Subfamilia 1",
+      "valores": [
+        "Medida 2",
+        "Sin imagen",
+        "Sin marcar",
+        "Marcado",
+        "Stock en 0",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Actualizar precio": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d003",
+      "sku": "SKU-003",
+      "nombre": "Artículo demo 3",
+      "subfamilia": "Subfamilia 1",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d004",
+      "sku": "SKU-004",
+      "nombre": "Artículo demo 4",
+      "subfamilia": "Subfamilia 1",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Unidad": [
+          "Medida 3",
+          "Medida 1"
+        ]
+      }
+    },
+    {
+      "id": "d005",
+      "sku": "SKU-005",
+      "nombre": "Artículo demo 5",
+      "subfamilia": "Subfamilia 1",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "50",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d006",
+      "sku": "SKU-006",
+      "nombre": "Artículo demo 6",
+      "subfamilia": "Subfamilia 1",
+      "valores": [
+        "Medida 1",
+        "Sin imagen",
+        "Marcado",
+        "Sin marcar",
+        "Stock en 0",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d007",
+      "sku": "SKU-007",
+      "nombre": "Artículo demo 7",
+      "subfamilia": "Subfamilia 2",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "45",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d008",
+      "sku": "SKU-008",
+      "nombre": "Artículo demo 8",
+      "subfamilia": "Subfamilia 2",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d009",
+      "sku": "SKU-009",
+      "nombre": "Artículo demo 9",
+      "subfamilia": "Subfamilia 2",
+      "valores": [
+        "Medida 3",
+        "Sin imagen",
+        "Marcado",
+        "Sin marcar",
+        "Stock en 0",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d010",
+      "sku": "SKU-010",
+      "nombre": "Artículo demo 10",
+      "subfamilia": "Subfamilia 2",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d011",
+      "sku": "SKU-011",
+      "nombre": "Artículo demo 11",
+      "subfamilia": "Subfamilia 2",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Actualizar precio": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d012",
+      "sku": "SKU-012",
+      "nombre": "Artículo demo 12",
+      "subfamilia": "Subfamilia 2",
+      "valores": [
+        "Medida 1",
+        "Sin imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Unidad": [
+          "Medida 1",
+          "Medida 2"
+        ]
+      }
+    },
+    {
+      "id": "d013",
+      "sku": "SKU-013",
+      "nombre": "Artículo demo 13",
+      "subfamilia": "Subfamilia 3",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "35",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d014",
+      "sku": "SKU-014",
+      "nombre": "Artículo demo 14",
+      "subfamilia": "Subfamilia 3",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "55",
+          "60"
+        ]
+      }
+    },
+    {
+      "id": "d015",
+      "sku": "SKU-015",
+      "nombre": "Artículo demo 15",
+      "subfamilia": "Subfamilia 3",
+      "valores": [
+        "Medida 1",
+        "Sin imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Stock en 0",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d016",
+      "sku": "SKU-016",
+      "nombre": "Artículo demo 16",
+      "subfamilia": "Subfamilia 3",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "B",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d017",
+      "sku": "SKU-017",
+      "nombre": "Artículo demo 17",
+      "subfamilia": "Subfamilia 3",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d018",
+      "sku": "SKU-018",
+      "nombre": "Artículo demo 18",
+      "subfamilia": "Subfamilia 3",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Sin marcar",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Actualizar precio": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d019",
+      "sku": "SKU-019",
+      "nombre": "Artículo demo 19",
+      "subfamilia": "Subfamilia 4",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "48",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d020",
+      "sku": "SKU-020",
+      "nombre": "Artículo demo 20",
+      "subfamilia": "Subfamilia 4",
+      "valores": [
+        "Medida 2",
+        "Sin imagen",
+        "Marcado",
+        "Sin marcar",
+        "Stock en 0",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d021",
+      "sku": "SKU-021",
+      "nombre": "Artículo demo 21",
+      "subfamilia": "Subfamilia 4",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Sin marcar",
+        "Marcado",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d022",
+      "sku": "SKU-022",
+      "nombre": "Artículo demo 22",
+      "subfamilia": "Subfamilia 4",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Unidad": [
+          "Medida 3",
+          "Medida 1"
+        ]
+      }
+    },
+    {
+      "id": "d023",
+      "sku": "SKU-023",
+      "nombre": "Artículo demo 23",
+      "subfamilia": "Subfamilia 4",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "52",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d024",
+      "sku": "SKU-024",
+      "nombre": "Artículo demo 24",
+      "subfamilia": "Subfamilia 4",
+      "valores": [
+        "Medida 1",
+        "Sin imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d025",
+      "sku": "SKU-025",
+      "nombre": "Artículo demo 25",
+      "subfamilia": "Subfamilia 5",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "40",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d026",
+      "sku": "SKU-026",
+      "nombre": "Artículo demo 26",
+      "subfamilia": "Subfamilia 5",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Actualizar precio": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d027",
+      "sku": "SKU-027",
+      "nombre": "Artículo demo 27",
+      "subfamilia": "Subfamilia 5",
+      "valores": [
+        "Medida 3",
+        "Sin imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Stock en 0",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d028",
+      "sku": "SKU-028",
+      "nombre": "Artículo demo 28",
+      "subfamilia": "Subfamilia 5",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d029",
+      "sku": "SKU-029",
+      "nombre": "Artículo demo 29",
+      "subfamilia": "Subfamilia 5",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "5",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d030",
+      "sku": "SKU-030",
+      "nombre": "Artículo demo 30",
+      "subfamilia": "Subfamilia 5",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Unidad": [
+          "Medida 3",
+          "Medida 2"
+        ]
+      }
+    },
+    {
+      "id": "d031",
+      "sku": "SKU-031",
+      "nombre": "Artículo demo 31",
+      "subfamilia": "Subfamilia 6",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "42",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d032",
+      "sku": "SKU-032",
+      "nombre": "Artículo demo 32",
+      "subfamilia": "Subfamilia 6",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Sin marcar",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Actualizar precio": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d033",
+      "sku": "SKU-033",
+      "nombre": "Artículo demo 33",
+      "subfamilia": "Subfamilia 6",
+      "valores": [
+        "Medida 1",
+        "Sin imagen",
+        "Marcado",
+        "Sin marcar",
+        "Stock en 0",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d034",
+      "sku": "SKU-034",
+      "nombre": "Artículo demo 34",
+      "subfamilia": "Subfamilia 6",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d035",
+      "sku": "SKU-035",
+      "nombre": "Artículo demo 35",
+      "subfamilia": "Subfamilia 6",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "55",
+          "58"
+        ]
+      }
+    },
+    {
+      "id": "d036",
+      "sku": "SKU-036",
+      "nombre": "Artículo demo 36",
+      "subfamilia": "Subfamilia 6",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d037",
+      "sku": "SKU-037",
+      "nombre": "Artículo demo 37",
+      "subfamilia": "Subfamilia 7",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "47",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d038",
+      "sku": "SKU-038",
+      "nombre": "Artículo demo 38",
+      "subfamilia": "Subfamilia 7",
+      "valores": [
+        "Medida 1",
+        "Sin imagen",
+        "Marcado",
+        "Marcado",
+        "Stock en 0",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "Sí",
+          "No"
+        ]
+      }
+    },
+    {
+      "id": "d039",
+      "sku": "SKU-039",
+      "nombre": "Artículo demo 39",
+      "subfamilia": "Subfamilia 7",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "C",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d040",
+      "sku": "SKU-040",
+      "nombre": "Artículo demo 40",
+      "subfamilia": "Subfamilia 7",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Unidad": [
+          "Medida 2",
+          "Medida 1"
+        ]
+      }
+    },
+    {
+      "id": "d041",
+      "sku": "SKU-041",
+      "nombre": "Artículo demo 41",
+      "subfamilia": "Subfamilia 7",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d042",
+      "sku": "SKU-042",
+      "nombre": "Artículo demo 42",
+      "subfamilia": "Subfamilia 7",
+      "valores": [
+        "Medida 3",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Actualizar precio": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d043",
+      "sku": "SKU-043",
+      "nombre": "Artículo demo 43",
+      "subfamilia": "Subfamilia 8",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "50",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d044",
+      "sku": "SKU-044",
+      "nombre": "Artículo demo 44",
+      "subfamilia": "Subfamilia 8",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Utilidad %": [
+          "38",
+          "55"
+        ]
+      }
+    },
+    {
+      "id": "d045",
+      "sku": "SKU-045",
+      "nombre": "Artículo demo 45",
+      "subfamilia": "Subfamilia 8",
+      "valores": [
+        "Medida 3",
+        "Sin imagen",
+        "Sin marcar",
+        "Marcado",
+        "Stock en 0",
+        "Sin sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Aplica tienda": [
+          "No",
+          "Sí"
+        ]
+      }
+    },
+    {
+      "id": "d046",
+      "sku": "SKU-046",
+      "nombre": "Artículo demo 46",
+      "subfamilia": "Subfamilia 8",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Marcado",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Sección": [
+          "",
+          "Sección A"
+        ]
+      }
+    },
+    {
+      "id": "d047",
+      "sku": "SKU-047",
+      "nombre": "Artículo demo 47",
+      "subfamilia": "Subfamilia 8",
+      "valores": [
+        "Medida 2",
+        "Con imagen",
+        "Sin marcar",
+        "Sin marcar",
+        "Con stock",
+        "Con sección",
+        "Con código"
+      ],
+      "cambios_base": {
+        "Estante": [
+          "",
+          "Estante ejemplo 2"
+        ]
+      }
+    },
+    {
+      "id": "d048",
+      "sku": "SKU-048",
+      "nombre": "Artículo demo 48",
+      "subfamilia": "Subfamilia 8",
+      "valores": [
+        "Medida 1",
+        "Con imagen",
+        "Marcado",
+        "Sin marcar",
+        "Con stock",
+        "Sin sección",
+        "Sin código"
+      ],
+      "cambios_base": {
+        "Unidad": [
+          "Medida 1",
+          "Medida 3"
+        ]
+      }
+    }
+  ],
+  "pendientes": [
+    {
+      "id": "d002",
+      "sku": "SKU-002",
+      "nombre": "Artículo demo 2",
+      "subfamilia": "Subfamilia 1",
+      "familia": "Familia demo",
+      "problemas": [
+        "Sin foto",
+        "Sin código"
+      ],
+      "slug": "articulo-demo-2"
+    },
+    {
+      "id": "d009",
+      "sku": "SKU-009",
+      "nombre": "Artículo demo 9",
+      "subfamilia": "Subfamilia 2",
+      "familia": "Familia demo",
+      "problemas": [
+        "En la tienda sin stock"
+      ],
+      "slug": "articulo-demo-9"
+    },
+    {
+      "id": "d015",
+      "sku": "SKU-015",
+      "nombre": "Artículo demo 15",
+      "subfamilia": "Subfamilia 3",
+      "familia": "Familia demo",
+      "problemas": [
+        "Fondo blanco",
+        "Sin foto en la tienda"
+      ],
+      "slug": "articulo-demo-15"
+    },
+    {
+      "id": "d020",
+      "sku": "SKU-020",
+      "nombre": "Artículo demo 20",
+      "subfamilia": "Subfamilia 4",
+      "familia": "Familia demo",
+      "problemas": [
+        "Sin precio",
+        "Sin foto"
+      ],
+      "slug": "articulo-demo-20"
+    },
+    {
+      "id": "d027",
+      "sku": "SKU-027",
+      "nombre": "Artículo demo 27",
+      "subfamilia": "Subfamilia 5",
+      "familia": "Familia demo",
+      "problemas": [
+        "Foto recortada"
+      ],
+      "slug": "articulo-demo-27"
+    },
+    {
+      "id": "d033",
+      "sku": "SKU-033",
+      "nombre": "Artículo demo 33",
+      "subfamilia": "Subfamilia 6",
+      "familia": "Familia demo",
+      "problemas": [
+        "En la tienda sin stock",
+        "Sin código"
+      ],
+      "slug": "articulo-demo-33"
+    }
+  ],
+  "historial_seed": [
+    {
+      "id": "demo0001",
+      "fecha": "2026-10-18T10:15:00",
+      "origen": "web",
+      "cuenta": {
+        "nombre": "Usuario demo",
+        "correo": "demo@ejemplo.com"
+      },
+      "accion": "Utilidad 55% · Aplica tienda: marcar",
+      "detalle": "Subfamilia 1 · 5 artículos",
+      "cambiados": 5,
+      "errores": 0,
+      "total_articulos": 5,
+      "articulos": [
+        {
+          "id": "d001",
+          "sku": "SKU-001",
+          "nombre": "Artículo demo 1",
+          "cambios": {
+            "Utilidad %": [
+              "40",
+              "55"
+            ],
+            "Aplica tienda": [
+              "No",
+              "Sí"
+            ]
+          }
+        },
+        {
+          "id": "d003",
+          "sku": "SKU-003",
+          "nombre": "Artículo demo 3",
+          "cambios": {
+            "Utilidad %": [
+              "45",
+              "55"
+            ]
+          }
+        },
+        {
+          "id": "d005",
+          "sku": "SKU-005",
+          "nombre": "Artículo demo 5",
+          "cambios": {
+            "Utilidad %": [
+              "50",
+              "55"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "demo0002",
+      "fecha": "2026-10-17T16:40:00",
+      "origen": "vigilante",
+      "cuenta": {
+        "nombre": "Usuario demo",
+        "correo": "demo@ejemplo.com"
+      },
+      "accion": "Vigilante · sin stock",
+      "detalle": "Subfamilia 3 · 2 desmarcados de tienda",
+      "cambiados": 2,
+      "errores": 0,
+      "total_articulos": 2,
+      "articulos": [
+        {
+          "id": "d015",
+          "sku": "SKU-015",
+          "nombre": "Artículo demo 15",
+          "cambios": {
+            "Aplica tienda": [
+              "Sí",
+              "No"
+            ]
+          }
+        },
+        {
+          "id": "d009",
+          "sku": "SKU-009",
+          "nombre": "Artículo demo 9",
+          "cambios": {
+            "Aplica tienda": [
+              "Sí",
+              "No"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "demo0003",
+      "fecha": "2026-10-16T09:05:00",
+      "origen": "script",
+      "cuenta": {
+        "nombre": "Usuario demo",
+        "correo": "demo@ejemplo.com"
+      },
+      "accion": "Sección A en vacíos",
+      "detalle": "Subfamilia 2 · 4 artículos",
+      "cambiados": 4,
+      "errores": 0,
+      "total_articulos": 4,
+      "articulos": [
+        {
+          "id": "d008",
+          "sku": "SKU-008",
+          "nombre": "Artículo demo 8",
+          "cambios": {
+            "Sección": [
+              "",
+              "Sección A"
+            ]
+          }
+        },
+        {
+          "id": "d012",
+          "sku": "SKU-012",
+          "nombre": "Artículo demo 12",
+          "cambios": {
+            "Sección": [
+              "",
+              "Sección A"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "estantes": [
+    "Estante ejemplo 1",
+    "Estante ejemplo 2",
+    "Estante ejemplo 3",
+    "Estante ejemplo 4"
+  ]
+}
