@@ -215,6 +215,14 @@ async function mostrarIntro(nombre) {
   }
   $("vitrina").addEventListener("mouseenter", () => { pausado = true; clearTimeout(reloj); });
   $("vitrina").addEventListener("mouseleave", () => { pausado = false; programar(); });
+  let toqueX = 0;
+  $("vitrina").addEventListener("touchstart", (e) => { toqueX = e.changedTouches[0].clientX; pausado = true; }, { passive: true });
+  $("vitrina").addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - toqueX;
+    if (Math.abs(dx) > 36) mostrar(dx < 0 ? (actual + 1) % total : (actual - 1 + total) % total);
+    else programar();
+    pausado = false;
+  }, { passive: true });
   mostrar(0);
 })();
 
@@ -256,6 +264,7 @@ function normal(texto) {
 /* desplegable. opciones.buscar agrega el buscador; opciones.todas pone TODAS de primera */
 function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
   const raiz = $(id);
+  if (!raiz) return;
   raiz.innerHTML = "";
   const todas = extra.todas ? ["TODAS", ...opciones] : [...opciones];
   const boton = document.createElement("button");
@@ -394,6 +403,14 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
       llenar(buscar?.value || "");
       if (avisar && alElegir) alElegir(texto);
     }
+  };
+  estado.marcarVarias = (lista) => {
+    if (!extra.multiple) return;
+    marcadas.clear();
+    (lista || []).forEach((o) => { if (opciones.includes(o)) marcadas.add(o); });
+    pintar();
+    llenar(buscar?.value || "");
+    if (alElegir) alElegir(estado.valor);
   };
   drops[id] = estado;
 }
@@ -597,6 +614,7 @@ document.querySelectorAll(".item").forEach((boton) => {
       revisarLinea();
       if (boton.dataset.pagina === "historial") cargarHistorial(primeraVez);
       if (boton.dataset.pagina === "inicio") cargarPendientes();
+      if (boton.dataset.pagina === "compuestos") cargarParejas();
     }, 420);
   };
 });
@@ -934,11 +952,11 @@ function avisar(titulo, texto, lista = [], opts = {}) {
   avisoResolver = null;
   pintarAviso(titulo, texto, lista, { ...opts, okTexto: "Entendido" });
 }
-function confirmarAviso(titulo, texto, lista = []) {
+function confirmarAviso(titulo, texto, lista = [], okTexto = "Actualizar") {
   return new Promise((resolve) => {
     $("aviso-cancelar").classList.remove("oculto");
     avisoResolver = resolve;
-    pintarAviso(titulo, texto, lista, { error: false, okTexto: "Actualizar" });
+    pintarAviso(titulo, texto, lista, { error: false, okTexto });
   });
 }
 function cerrarAviso(ok = false) {
@@ -2145,3 +2163,426 @@ function armarTablaHistorial(cuerpo, e) {
     cuerpo.append(crear("p", "hist-nota", `Se guardaron los primeros ${e.articulos.length} de ${e.total_articulos} artículos.`));
   }
 }
+
+/* artículos compuestos: parejas, pegar piezas, vista previa y crear kit (demo) */
+let kitActual = null;
+let parejasDatos = null;
+let parejasEstado = "listo";
+let parejasSub = [];
+let parejasSubsPendientes = [];
+
+function etiquetasPareja() {
+  return {
+    listo: t("js.ready"),
+    ya_tiene_kit: t("js.hasKit"),
+    incompleto: t("js.missing"),
+  };
+}
+
+function textoPiezaPar(pieza, rol) {
+  if (!pieza) return rol === "condensadora" ? t("js.noCond") : t("js.noEvap");
+  return pieza.sku || pieza.nombre || rol;
+}
+
+function pintarChipsParejas() {
+  const caja = $("comp-chips");
+  if (!caja || !parejasDatos) return;
+  const conteo = parejasDatos.conteo || {};
+  const labels = etiquetasPareja();
+  caja.innerHTML = "";
+  [["", t("js.all"), parejasDatos.total], ...Object.entries(labels).map(([k, nom]) => [k, nom, conteo[k] || 0])].forEach(([tipo, nombre, n]) => {
+    const chip = crear("button", `pend-chip${tipo === parejasEstado ? " activo" : ""}`);
+    chip.type = "button";
+    chip.setAttribute("aria-pressed", tipo === parejasEstado ? "true" : "false");
+    chip.append(document.createTextNode(nombre), crear("b", "", Number(n).toLocaleString("es-CR")));
+    chip.onclick = () => {
+      parejasEstado = tipo;
+      pintarChipsParejas();
+      pintarListaParejas();
+    };
+    caja.append(chip);
+  });
+}
+
+function parejasVisibles() {
+  const aguja = normal($("comp-lista-buscar")?.value || "");
+  return (parejasDatos?.parejas || []).filter((par) => {
+    if (parejasEstado && par.estado !== parejasEstado) return false;
+    if (parejasSub.length && !par.subfamilias.some((s) => parejasSub.includes(s))) return false;
+    if (!aguja) return true;
+    const blob = normal([par.base, par.sku_kit, par.subfamilia, par.cond?.sku, par.evap?.sku, par.cond?.nombre, par.evap?.nombre].filter(Boolean).join(" "));
+    return blob.includes(aguja);
+  });
+}
+
+function pintarListaParejas() {
+  const caja = $("comp-lista");
+  if (!caja) return;
+  const lista = parejasVisibles();
+  const labels = etiquetasPareja();
+  caja.innerHTML = "";
+  $("comp-lista-conteo").textContent = parejasDatos
+    ? t("js.showing", { n: lista.length.toLocaleString("es-CR"), t: parejasDatos.total.toLocaleString("es-CR") })
+    : "";
+  if (!lista.length) {
+    caja.append(crear("p", "nota", parejasDatos ? t("js.none") : t("js.loading")));
+    return;
+  }
+  lista.forEach((par) => {
+    const fila = crear("article", `comp-par ${par.estado}`);
+    const izq = crear("div");
+    izq.append(crear("strong", "", par.sku_kit || par.base));
+    izq.append(crear("small", "", par.subfamilia || "—"));
+    const mid = crear("div");
+    mid.append(crear("small", "", `${textoPiezaPar(par.cond, "condensadora")} + ${textoPiezaPar(par.evap, "evaporadora")}`));
+    mid.append(crear("span", "comp-par-estado", labels[par.estado] || par.estado));
+    const der = crear("div");
+    const boton = crear("button", "btn rojo", par.estado === "listo" ? t("js.build") : t("js.open"));
+    boton.type = "button";
+    boton.disabled = !par.cond && !par.evap;
+    boton.onclick = () => armarDesdePar(par);
+    der.append(boton);
+    fila.append(izq, mid, der);
+    caja.append(fila);
+  });
+}
+
+function armarDesdePar(par) {
+  const skus = [par.cond, par.evap].filter(Boolean).map((p) => p.sku).filter(Boolean);
+  $("comp-pega").value = skus.join("\n");
+  $("comp-pega").scrollIntoView({ behavior: "smooth", block: "center" });
+  buscarCompuestos();
+}
+
+async function cargarParejas() {
+  const fecha = $("comp-lista-fecha");
+  if (fecha) fecha.textContent = t("js.localRead");
+  try {
+    const respuesta = await fetch("/api/compuestos/parejas");
+    const datos = await respuesta.json();
+    if (!respuesta.ok || !datos.ok) {
+      if (fecha) fecha.textContent = datos.mensaje || t("js.localFail");
+      return;
+    }
+    parejasDatos = datos;
+    if (parejasEstado === "listo" && !(datos.conteo?.listo)) parejasEstado = "";
+    if (fecha) fecha.textContent = t("js.localOk");
+    armarDrop("drop-comp-sub", datos.subfamilias || [], t("js.all"), () => {
+      parejasSub = drops["drop-comp-sub"]?.elegidas || [];
+      pintarListaParejas();
+    }, { buscar: true, todas: true, multiple: true });
+    if (parejasSubsPendientes.length) {
+      drops["drop-comp-sub"]?.marcarVarias(parejasSubsPendientes);
+      parejasSub = drops["drop-comp-sub"]?.elegidas || [];
+      parejasSubsPendientes = [];
+    }
+    pintarChipsParejas();
+    pintarListaParejas();
+  } catch {
+    if (fecha) fecha.textContent = t("js.localFail");
+  }
+}
+
+$("ir-parejas")?.addEventListener("click", () => {
+  parejasSubsPendientes = hayTodas() ? [] : subsElegidas();
+  irA("compuestos");
+});
+$("comp-lista-buscar")?.addEventListener("input", pintarListaParejas);
+
+function colones(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "—";
+  return `₡${x.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function rellenarKitForm(kit) {
+  const d = kit.kit || {};
+  $("comp-nombre").value = d.nombre || "";
+  $("comp-sku").value = d.sku || "";
+  $("comp-unidad").value = d.unidad || "";
+  $("comp-familia").value = d.familia || "";
+  $("comp-subfamilia").value = d.subfamilia || "";
+  $("comp-precio").value = d.precio ?? "";
+  $("comp-costo").value = d.costo ?? "";
+  $("comp-desc").value = d.descripcion || "";
+  ["comp-nombre", "comp-sku", "comp-unidad", "comp-familia", "comp-subfamilia", "comp-precio", "comp-costo", "comp-desc"].forEach((id) => {
+    $(id).parentElement?.classList.toggle("cambiado", Boolean($(id).value));
+  });
+}
+
+function kitDesdeForm() {
+  return {
+    nombre: $("comp-nombre").value.trim(),
+    sku: $("comp-sku").value.trim(),
+    unidad: $("comp-unidad").value.trim(),
+    familia: $("comp-familia").value.trim(),
+    subfamilia: $("comp-subfamilia").value.trim(),
+    precio: $("comp-precio").value.trim(),
+    costo: $("comp-costo").value.trim(),
+    descripcion: $("comp-desc").value.trim(),
+  };
+}
+
+function pintarPiezas(piezas) {
+  const caja = $("comp-hallados");
+  caja.innerHTML = "";
+  if (!piezas?.length) {
+    caja.classList.add("oculto");
+    return;
+  }
+  caja.classList.remove("oculto");
+  caja.append(crear("h3", "opciones-titulo", t("js.pieces")));
+  const tabla = crear("table", "comp-piezas");
+  const cabeza = crear("tr");
+  ["Rol", "SKU", "Nombre", "Cant.", "Precio", "Costo", "Stock", ""].forEach((txt) => cabeza.append(crear("th", "", txt)));
+  const thead = crear("thead");
+  thead.append(cabeza);
+  tabla.append(thead);
+  const cuerpo = crear("tbody");
+  piezas.forEach((p, i) => {
+    const fila = crear("tr");
+    fila.append(crear("td", "comp-rol", p.rol || "pieza"));
+    fila.append(crear("td", "", p.sku || "—"));
+    fila.append(crear("td", "", p.nombre || "—"));
+    const cant = document.createElement("input");
+    cant.type = "number";
+    cant.min = "1";
+    cant.step = "1";
+    cant.value = p.cantidad || 1;
+    cant.onchange = () => {
+      const n = Number(cant.value);
+      kitActual.piezas[i].cantidad = n > 0 ? n : 1;
+      const precio = kitActual.piezas.reduce((tot, x) => tot + Number(x.precio || 0) * Number(x.cantidad || 1), 0);
+      const costo = kitActual.piezas.reduce((tot, x) => tot + Number(x.costo || 0) * Number(x.cantidad || 1), 0);
+      kitActual.kit.precio = Math.round(precio * 100) / 100;
+      kitActual.kit.costo = Math.round(costo * 100) / 100;
+      $("comp-precio").value = kitActual.kit.precio;
+      $("comp-costo").value = kitActual.kit.costo;
+      pintarPreviaKit(kitActual);
+    };
+    const tdCant = crear("td");
+    tdCant.append(cant);
+    fila.append(tdCant);
+    fila.append(crear("td", "", colones(p.precio)));
+    fila.append(crear("td", "", colones(p.costo)));
+    fila.append(crear("td", "", String(p.stock ?? "—")));
+    const sacar = crear("button", "comp-sacar", "×");
+    sacar.type = "button";
+    sacar.setAttribute("aria-label", "Quitar");
+    sacar.onclick = () => {
+      kitActual.piezas.splice(i, 1);
+      if (kitActual.piezas.length < 2) {
+        $("comp-form").classList.add("oculto");
+        $("comp-previa").classList.add("oculto");
+        $("comp-validacion").textContent = t("js.need2");
+        $("comp-validacion").className = "comp-validacion mal";
+      }
+      pintarPiezas(kitActual.piezas);
+      if (kitActual.piezas.length >= 2) pintarPreviaKit(kitActual);
+    };
+    const tdSacar = crear("td");
+    tdSacar.append(sacar);
+    fila.append(tdSacar);
+    cuerpo.append(fila);
+  });
+  tabla.append(cuerpo);
+  caja.append(tabla);
+}
+
+function pintarValidacion(kit) {
+  const caja = $("comp-validacion");
+  const errores = kit.errores || [];
+  const avisos = kit.avisos || [];
+  caja.className = "comp-validacion";
+  if (errores.length) {
+    caja.classList.add("mal");
+    caja.textContent = errores.join(" ");
+  } else if (avisos.length) {
+    caja.classList.add(kit.ok ? "ok" : "warn");
+    caja.textContent = avisos.join(" ");
+  } else if (kit.ok) {
+    caja.classList.add("ok");
+    caja.textContent = t("js.okPair");
+  } else {
+    caja.classList.add("mal");
+    caja.textContent = kit.mensaje || t("js.need2");
+  }
+}
+
+function pintarPreviaKit(kit) {
+  const form = kitDesdeForm();
+  const piezas = kit.piezas || [];
+  $("comp-previa").classList.remove("oculto");
+  $("comp-previa-resumen").innerHTML = piezas.length >= 2
+    ? t("js.previewKit", { sku: form.sku || "—", n: piezas.length, min: Math.min(...piezas.map((p) => Number(p.stock) || 0)) })
+    : t("js.need2");
+  const cabeza = $("comp-previa-cabeza");
+  cabeza.innerHTML = "";
+  ["", "SKU", "Nombre", "Cant.", "Precio", "Costo", "Stock"].forEach((txt) => cabeza.append(crear("th", "", txt)));
+  const filas = $("comp-previa-filas");
+  filas.innerHTML = "";
+  piezas.forEach((p) => {
+    const fila = crear("tr");
+    fila.append(
+      crear("td", "", p.rol || "pieza"),
+      crear("td", "", p.sku || "—"),
+      crear("td", "", p.nombre || "—"),
+      crear("td", "", String(p.cantidad || 1)),
+      crear("td", "", colones(p.precio)),
+      crear("td", "", colones(p.costo)),
+      crear("td", "", String(p.stock ?? "—")),
+    );
+    filas.append(fila);
+  });
+  const total = crear("tr");
+  total.append(
+    crear("td", "", "KIT"),
+    crear("td", "", form.sku || "—"),
+    crear("td", "", form.nombre || "—"),
+    crear("td", "", "1"),
+    crear("td", "", colones(form.precio)),
+    crear("td", "", colones(form.costo)),
+    crear("td", "", String(Math.min(...piezas.map((p) => Number(p.stock) || 0)))),
+  );
+  filas.append(total);
+  const llamadas = (kit.costo_api && kit.costo_api.llamadas) || (piezas.length + 1);
+  $("comp-costo-api").textContent = t("js.cost", { n: llamadas, p: piezas.length });
+  $("comp-crear").disabled = !kit.ok || piezas.length < 2;
+}
+
+async function buscarCompuestos() {
+  const texto = $("comp-pega").value;
+  $("comp-estado").textContent = t("js.searching");
+  $("comp-buscar").disabled = true;
+  try {
+    const respuesta = await fetch("/api/compuestos/buscar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto }),
+    });
+    const datos = await respuesta.json();
+    kitActual = datos;
+    kitActual.piezas = datos.piezas || [];
+    $("comp-estado").textContent = datos.encontradas
+      ? t("js.found", { n: datos.encontradas })
+      : (datos.mensaje || t("js.noneFound"));
+    pintarPiezas(kitActual.piezas);
+    if (kitActual.piezas.length >= 2) {
+      $("comp-form").classList.remove("oculto");
+      rellenarKitForm(kitActual);
+      pintarValidacion(kitActual);
+      pintarPreviaKit(kitActual);
+    } else {
+      $("comp-form").classList.add("oculto");
+      $("comp-previa").classList.add("oculto");
+      if (kitActual.piezas.length) {
+        $("comp-form").classList.remove("oculto");
+        pintarValidacion(kitActual);
+      }
+    }
+  } catch {
+    $("comp-estado").textContent = t("js.searchFail");
+  } finally {
+    $("comp-buscar").disabled = false;
+  }
+}
+
+$("comp-buscar")?.addEventListener("click", buscarCompuestos);
+$("comp-pega")?.addEventListener("paste", () => setTimeout(buscarCompuestos, 0));
+$("comp-limpiar")?.addEventListener("click", () => {
+  kitActual = null;
+  $("comp-pega").value = "";
+  $("comp-estado").textContent = "";
+  $("comp-hallados").classList.add("oculto");
+  $("comp-form").classList.add("oculto");
+  $("comp-previa").classList.add("oculto");
+});
+["comp-nombre", "comp-sku", "comp-unidad", "comp-familia", "comp-subfamilia", "comp-precio", "comp-costo", "comp-desc"].forEach((id) => {
+  $(id)?.addEventListener("input", () => {
+    $(id).parentElement?.classList.toggle("cambiado", Boolean($(id).value.trim()));
+    if (kitActual) pintarPreviaKit(kitActual);
+  });
+});
+$("comp-excel")?.addEventListener("click", async () => {
+  if (!kitActual || (kitActual.piezas || []).length < 2) return;
+  const respuesta = await fetch("/api/compuestos.xlsx", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ piezas: kitActual.piezas, kit: kitDesdeForm() }),
+  });
+  if (!respuesta.ok) {
+    avisar(t("js.createFail"), t("js.searchFail"), [], { error: true });
+    return;
+  }
+  const sku = kitDesdeForm().sku || "kit";
+  const enlace = document.createElement("a");
+  enlace.href = URL.createObjectURL(await respuesta.blob());
+  enlace.download = `kit-${sku}.txt`;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(enlace.href), 2000);
+});
+$("comp-crear")?.addEventListener("click", async () => {
+  if (!kitActual || (kitActual.piezas || []).length < 2) return;
+  if (!kitActual.ok) {
+    avisar(t("js.createFail"), kitActual.mensaje || t("js.need2"), kitActual.errores || []);
+    return;
+  }
+  const form = kitDesdeForm();
+  if (!form.nombre || !form.sku) {
+    avisar(t("js.createFail"), t("js.needName"));
+    return;
+  }
+  const ok = await confirmarAviso(
+    t("js.createT"),
+    t("js.createP", { sku: form.sku, name: form.nombre, parts: kitActual.piezas.map((p) => p.sku).join(" + ") }),
+    [],
+    t("js.createYes"),
+  );
+  if (!ok) return;
+  $("comp-crear").disabled = true;
+  $("comp-estado").textContent = t("js.creating");
+  try {
+    const respuesta = await fetch("/api/compuestos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ids: kitActual.piezas.map((p) => p.id),
+        piezas: kitActual.piezas.map((p) => ({ id: p.id, cantidad: p.cantidad || 1 })),
+        kit: form,
+      }),
+    });
+    const datos = await respuesta.json();
+    if (!respuesta.ok || !datos.ok) {
+      avisar(t("js.createFail"), datos.mensaje || t("js.createFail"), [], { error: true });
+      $("comp-estado").textContent = datos.mensaje || t("js.createFail");
+      return;
+    }
+    mostrarToast(t("js.createT"), t("js.created", { sku: datos.item.sku }));
+    $("comp-estado").textContent = t("js.created", { sku: datos.item.sku });
+    kitActual.ok = false;
+    $("comp-crear").disabled = true;
+    parejasDatos = null;
+    cargarParejas();
+  } catch {
+    avisar(t("js.createFail"), t("js.searchFail"), [], { error: true });
+  } finally {
+    $("comp-crear").disabled = Boolean(!kitActual || !kitActual.ok);
+  }
+});
+
+document.addEventListener("idioma-cambiado", () => {
+  if (parejasDatos) {
+    pintarChipsParejas();
+    pintarListaParejas();
+  }
+  if (kitActual) {
+    if (kitActual.piezas?.length) pintarPiezas(kitActual.piezas);
+    if (kitActual.piezas?.length >= 2) {
+      pintarValidacion(kitActual);
+      pintarPreviaKit(kitActual);
+    }
+  }
+  const miga = $("miga");
+  const activo = document.querySelector(".item.activo .item-texto");
+  if (miga && activo) miga.textContent = activo.textContent.trim();
+});

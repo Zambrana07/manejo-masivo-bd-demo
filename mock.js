@@ -5,6 +5,139 @@
   const LS_VIG = "demo-masivo-vigilante";
   const LS_CORR = "demo-masivo-corregidos";
   const LS_SES = "demo-masivo-sesion";
+  const LS_KITS = "demo-masivo-kits";
+
+  const PAREJAS_BASE = [
+    {
+      estado: "listo",
+      base: "MOD-A-1817",
+      sku_kit: "MOD-A-1817",
+      subfamilia: "Subfamilia 2",
+      subfamilias: ["Subfamilia 2"],
+      cond: { id: "p-a-e", sku: "MOD-A-1817-E", nombre: "Condensadora modelo A 18000", precio: 185000, costo: 120000, stock: 4, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "condensadora" },
+      evap: { id: "p-a-i", sku: "MOD-A-1817-I", nombre: "Evaporadora modelo A 18000", precio: 95000, costo: 62000, stock: 3, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "evaporadora" },
+    },
+    {
+      estado: "listo",
+      base: "MOD-B-1820W",
+      sku_kit: "MOD-B-1820W",
+      subfamilia: "Subfamilia 2",
+      subfamilias: ["Subfamilia 2"],
+      cond: { id: "p-b-e", sku: "MOD-B-1820W-E", nombre: "Condensadora modelo B 18000W", precio: 198000, costo: 128000, stock: 2, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "condensadora" },
+      evap: { id: "p-b-i", sku: "MOD-B-1820W-I", nombre: "Evaporadora modelo B 18000W", precio: 102000, costo: 66000, stock: 2, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "evaporadora" },
+    },
+    {
+      estado: "listo",
+      base: "TAC-12CSDI",
+      sku_kit: "TAC-12CSDI",
+      subfamilia: "Subfamilia 3",
+      subfamilias: ["Subfamilia 3"],
+      cond: { id: "p-c-go", sku: "TAC-12CSDI/SZGO", nombre: "Condensadora TAC 12", precio: 164000, costo: 108000, stock: 5, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 3", rol: "condensadora" },
+      evap: { id: "p-c-gi", sku: "TAC-12CSDI/SZGI", nombre: "Evaporadora TAC 12", precio: 88000, costo: 54000, stock: 6, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 3", rol: "evaporadora" },
+    },
+    {
+      estado: "ya_tiene_kit",
+      base: "MOD-D-2418",
+      sku_kit: "MOD-D-2418",
+      subfamilia: "Subfamilia 2",
+      subfamilias: ["Subfamilia 2"],
+      cond: { id: "p-d-e", sku: "MOD-D-2418-E", nombre: "Condensadora modelo D 24000", precio: 240000, costo: 155000, stock: 1, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "condensadora" },
+      evap: { id: "p-d-i", sku: "MOD-D-2418-I", nombre: "Evaporadora modelo D 24000", precio: 118000, costo: 76000, stock: 1, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "evaporadora" },
+    },
+    {
+      estado: "incompleto",
+      base: "MOD-E-1210",
+      sku_kit: "MOD-E-1210",
+      subfamilia: "Subfamilia 4",
+      subfamilias: ["Subfamilia 4"],
+      cond: { id: "p-e-e", sku: "MOD-E-1210-E", nombre: "Condensadora modelo E 12000", precio: 142000, costo: 90000, stock: 3, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 4", rol: "condensadora" },
+      evap: null,
+    },
+    {
+      estado: "incompleto",
+      base: "CAN-2517",
+      sku_kit: "CAN-2517",
+      subfamilia: "Subfamilia 4",
+      subfamilias: ["Subfamilia 4"],
+      cond: null,
+      evap: { id: "p-f-i", sku: "CAN-2517-I", nombre: "Evaporadora canaleta 2517", precio: 54000, costo: 31000, stock: 8, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 4", rol: "evaporadora" },
+    },
+  ];
+
+  function kitsCreados() {
+    try { return JSON.parse(localStorage.getItem(LS_KITS) || "[]"); } catch { return []; }
+  }
+  function guardarKits(lista) {
+    localStorage.setItem(LS_KITS, JSON.stringify(lista));
+  }
+
+  function parejasActuales() {
+    const creados = new Set(kitsCreados().map((k) => k.base));
+    return PAREJAS_BASE.map((p) => {
+      const copia = { ...p, cond: p.cond ? { ...p.cond } : null, evap: p.evap ? { ...p.evap } : null };
+      if (creados.has(p.base) && p.estado === "listo") copia.estado = "ya_tiene_kit";
+      return copia;
+    });
+  }
+
+  function todasPiezas() {
+    const extra = [];
+    parejasActuales().forEach((p) => {
+      if (p.cond) extra.push(p.cond);
+      if (p.evap) extra.push(p.evap);
+    });
+    kitsCreados().forEach((k) => extra.push({
+      id: k.id, sku: k.sku, nombre: k.nombre, precio: k.precio, costo: k.costo,
+      stock: k.stock, unidad: k.unidad, familia: k.familia, subfamilia: k.subfamilia, rol: "kit",
+    }));
+    return extra;
+  }
+
+  function armarKitDesdePiezas(piezas) {
+    const errores = [];
+    const avisos = [];
+    if (piezas.length < 2) errores.push("Hacen falta mínimo dos artículos.");
+    const cond = piezas.find((p) => p.rol === "condensadora");
+    const evap = piezas.find((p) => p.rol === "evaporadora");
+    if (piezas.length >= 2 && (!cond || !evap)) {
+      avisos.push("No se ve una pareja condensadora + evaporadora. Revisá los SKU.");
+    }
+    const bases = [...new Set(piezas.map((p) => (p.sku || "").replace(/-E$|-I$|\/SZGO$|\/SZGI$/, "")))];
+    if (bases.length > 1) avisos.push("Las piezas no son del mismo modelo.");
+    const skuNuevo = (cond && evap)
+      ? (cond.sku.replace(/-E$|\/SZGO$/, "") || bases[0] || "KIT-DEMO")
+      : (bases[0] || "KIT-NUEVO");
+    if (kitsCreados().some((k) => k.sku === skuNuevo) || PAREJAS_BASE.some((p) => p.estado === "ya_tiene_kit" && p.sku_kit === skuNuevo)) {
+      errores.push("Ese SKU de kit ya existe.");
+    }
+    const precio = piezas.reduce((t, x) => t + Number(x.precio || 0) * Number(x.cantidad || 1), 0);
+    const costo = piezas.reduce((t, x) => t + Number(x.costo || 0) * Number(x.cantidad || 1), 0);
+    const stock = Math.min(...piezas.map((p) => Number(p.stock) || 0));
+    const ok = errores.length === 0 && piezas.length >= 2;
+    return {
+      ok,
+      errores,
+      avisos,
+      encontradas: piezas.length,
+      fecha: new Date().toISOString().slice(0, 19),
+      piezas: piezas.map((p) => ({ ...p, cantidad: p.cantidad || 1 })),
+      kit: {
+        nombre: [cond?.nombre, evap?.nombre].filter(Boolean).join(" + ") || "Kit demo",
+        sku: skuNuevo,
+        unidad: piezas[0]?.unidad || "UNIDAD",
+        familia: piezas[0]?.familia || "Clima",
+        subfamilia: piezas[0]?.subfamilia || "Subfamilia 2",
+        precio: Math.round(precio * 100) / 100,
+        costo: Math.round(costo * 100) / 100,
+        descripcion: `Kit ${skuNuevo} (demo)`,
+        stock,
+      },
+      costo_api: { llamadas: piezas.length + 1 },
+      restan: 9876543,
+      limite: 10000000,
+      mensaje: ok ? "" : (errores[0] || avisos[0] || "Revisá las piezas."),
+    };
+  }
 
   let catalogo = null;
   let listo = null;
@@ -394,6 +527,10 @@
     }
 
     if (ruta === "/api/catalogo" && method === "GET") {
+      const extraFiltros = [
+        { clave: "compuesto", titulo: "Artículo compuesto", opciones: ["Pieza", "Kit"] },
+        { clave: "pareja", titulo: "Pareja para kit", opciones: ["Listo", "Ya tiene kit", "Falta una pieza"] },
+      ];
       return json({
         usuario: sesion.nombre,
         remoto: true,
@@ -403,7 +540,7 @@
         tiempos: [30, 60],
         unidades: catalogo.unidades,
         estantes: catalogo.estantes,
-        filtros: catalogo.filtros,
+        filtros: [...(catalogo.filtros || []), ...extraFiltros],
         aviso: {},
       });
     }
@@ -620,6 +757,99 @@
       else mapa[body.id] = { fecha: new Date().toISOString() };
       localStorage.setItem(LS_CORR, JSON.stringify(mapa));
       return json({ ok: true });
+    }
+
+    if (ruta === "/api/compuestos/parejas" && method === "GET") {
+      const parejas = parejasActuales();
+      const conteo = { listo: 0, ya_tiene_kit: 0, incompleto: 0 };
+      parejas.forEach((p) => { conteo[p.estado] = (conteo[p.estado] || 0) + 1; });
+      const subs = [...new Set(parejas.map((p) => p.subfamilia).filter(Boolean))];
+      return json({
+        ok: true,
+        fecha: new Date().toISOString().slice(0, 19),
+        total: parejas.length,
+        conteo,
+        subfamilias: subs,
+        parejas,
+      });
+    }
+
+    if (ruta === "/api/compuestos/buscar" && method === "POST") {
+      const lineas = String(body.texto || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const pool = todasPiezas();
+      const piezas = [];
+      const vistos = new Set();
+      lineas.forEach((linea) => {
+        const aguja = linea.replace(/^#/, "").toLowerCase();
+        const hit = pool.find((p) => (
+          (p.sku && p.sku.toLowerCase() === aguja)
+          || (p.nombre && p.nombre.toLowerCase() === aguja)
+          || (p.sku && aguja.includes(p.sku.toLowerCase()))
+          || (p.nombre && p.nombre.toLowerCase().includes(aguja))
+        ));
+        if (hit && !vistos.has(hit.id)) {
+          vistos.add(hit.id);
+          piezas.push({ ...hit, cantidad: 1 });
+        }
+      });
+      return json(armarKitDesdePiezas(piezas));
+    }
+
+    if (ruta === "/api/compuestos.xlsx" && method === "POST") {
+      const kit = body.kit || {};
+      const piezas = body.piezas || [];
+      const lineas = [
+        "SKU\tNombre\tCant\tPrecio\tCosto",
+        ...piezas.map((p) => `${p.sku}\t${p.nombre}\t${p.cantidad || 1}\t${p.precio}\t${p.costo}`),
+        `${kit.sku || "KIT"}\t${kit.nombre || ""}\t1\t${kit.precio || ""}\t${kit.costo || ""}`,
+      ];
+      return blobRespuesta(`kit-${kit.sku || "demo"}.txt`, lineas.join("\n"));
+    }
+
+    if (ruta === "/api/compuestos" && method === "POST") {
+      const kit = body.kit || {};
+      if (!kit.sku || !kit.nombre) {
+        return json({ ok: false, mensaje: "El kit necesita nombre y un SKU nuevo." }, 400);
+      }
+      const lista = kitsCreados();
+      if (lista.some((k) => k.sku === kit.sku)) {
+        return json({ ok: false, mensaje: "Ese SKU de kit ya existe." }, 400);
+      }
+      const par = parejasActuales().find((p) => p.sku_kit === kit.sku || p.base === kit.sku);
+      lista.push({
+        id: `kit-${Date.now().toString(36)}`,
+        base: par?.base || kit.sku,
+        sku: kit.sku,
+        nombre: kit.nombre,
+        precio: kit.precio,
+        costo: kit.costo,
+        stock: 1,
+        unidad: kit.unidad,
+        familia: kit.familia,
+        subfamilia: kit.subfamilia,
+      });
+      guardarKits(lista);
+      const hist = historialLeer();
+      hist.unshift({
+        id: `kit${Date.now().toString(36).slice(-6)}`,
+        fecha: new Date().toISOString().slice(0, 19),
+        origen: "web",
+        cuenta: { nombre: "Usuario demo", correo: "demo@ejemplo.com" },
+        accion: `Kit creado ${kit.sku}`,
+        detalle: kit.nombre,
+        cambiados: 1,
+        errores: 0,
+        total_articulos: 1,
+        articulos: [{ id: kit.sku, sku: kit.sku, nombre: kit.nombre, cambios: { Kit: ["", kit.sku] } }],
+      });
+      historialGuardar(hist);
+      return json({
+        ok: true,
+        item: { sku: kit.sku, nombre: kit.nombre },
+        consumo: (body.piezas || []).length + 1,
+        llamadas: (body.piezas || []).length + 1,
+        restan: 9876540,
+      });
     }
 
     if (ruta === "/api/tienda-producto" && method === "GET") {
