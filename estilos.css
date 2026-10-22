@@ -863,7 +863,7 @@ button.pend-abrir { background: transparent; font-family: inherit; cursor: point
 .filtro-btn.activo { background: rgba(196,64,60,.16); border-color: var(--rojo); }
 .filtro-btn b { min-width: 22px; height: 22px; border-radius: 11px; background: var(--rojo); font-size: 12px; display: grid; place-items: center; padding: 0 6px; }
 .filtro-pop {
-  position: absolute; right: 0; top: calc(100% + 8px); width: min(560px, 90vw);
+  position: absolute; right: 0; top: calc(100% + 8px); width: min(620px, 94vw);
   background: #1c1c21; border: 1px solid rgba(255,255,255,.18); border-radius: 16px;
   box-shadow: 0 20px 44px rgba(0,0,0,.6); animation: abrir .18s ease; overflow: hidden;
 }
@@ -894,12 +894,14 @@ button.pend-abrir { background: transparent; font-family: inherit; cursor: point
   border-color: rgba(196, 64, 60, .55); background: rgba(196, 64, 60, .12);
 }
 .filtro-op input, .filtro-todo input { display: none; }
-.filtro-op span, .filtro-todo span {
+.filtro-op input + span, .filtro-todo .filtro-check {
   flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; border: 2px solid rgba(255,255,255,.4);
   display: grid; place-items: center; transition: background .12s ease, border-color .12s ease;
 }
-.filtro-op input:checked + span, .filtro-todo input:checked + span { background: var(--rojo); border-color: var(--rojo); }
-.filtro-op input:checked + span::after, .filtro-todo input:checked + span::after {
+.filtro-todo .filtro-txt { width: auto; height: auto; border: 0; background: none; display: inline; min-width: 0; }
+.filtro-todo { flex-shrink: 0; }
+.filtro-op input:checked + span, .filtro-todo input:checked + .filtro-check { background: var(--rojo); border-color: var(--rojo); }
+.filtro-op input:checked + span::after, .filtro-todo input:checked + .filtro-check::after {
   content: ""; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, -1px);
 }
 .filtro-op small { margin-left: auto; color: rgba(255,255,255,.45); }
@@ -1234,8 +1236,9 @@ button.pend-abrir { background: transparent; font-family: inherit; cursor: point
   }
   .filtro-cats li { margin: 0; flex: 0 0 auto; white-space: nowrap; }
   .filtro-opciones { flex: 1 1 auto; min-height: 0; overflow: auto; }
-  #filtro-lista { max-height: none; }
-  .filtro-pie { flex-wrap: wrap; justify-content: stretch; gap: 8px; }
+  .filtro-todo { min-height: 44px; white-space: nowrap; }
+  #filtro-lista { max-height: none; flex: 1 1 auto; }
+  .filtro-pie { flex-shrink: 0; flex-wrap: wrap; justify-content: stretch; gap: 8px; }
   .filtro-pie .indice-info { flex: 1 1 100%; }
   .filtro-pie .btn { flex: 1 1 auto; }
   .acciones { gap: 8px; }
