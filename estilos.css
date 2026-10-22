@@ -218,10 +218,13 @@ input::placeholder { color: rgba(255,255,255,.4); }
   transition: width .28s ease, padding .28s ease, margin .28s ease, border-width .28s ease;
 }
 .menu.cerrado { width: 76px; padding: 22px 10px; }
-.menu.cerrado .menu-titulo, .menu.cerrado .item-texto, .menu.cerrado .menu-pie-texto { opacity: 0; width: 0; overflow: hidden; }
+.menu.cerrado .menu-titulo, .menu.cerrado .item-texto, .menu.cerrado .menu-pie-texto { display: none; }
 .menu.cerrado .item { justify-content: center; padding: 13px 0; gap: 0; }
+.menu.cerrado .item > i { display: none; }
+.menu.cerrado .item-icono { margin: 0; }
 .menu.cerrado .item:hover { transform: none; }
-.menu.cerrado .menu-pie { padding: 10px 0; justify-content: center; }
+.menu.cerrado .menu-pie { padding: 10px 0; justify-content: center; gap: 0; }
+.menu.cerrado .menu-avatar { margin: 0 auto; }
 .item-icono {
   width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8;
   stroke-linecap: round; stroke-linejoin: round;
