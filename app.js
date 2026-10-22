@@ -279,7 +279,7 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
     const caja = document.createElement("div");
     caja.className = "buscador";
     buscar = document.createElement("input");
-    buscar.placeholder = "Buscar…";
+    buscar.placeholder = t("bulk.search");
     buscar.onclick = (evento) => evento.stopPropagation();
     buscar.oninput = () => llenar(buscar.value);
     caja.append(buscar);
@@ -301,7 +301,16 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
       estado.elegidas = opciones.filter((o) => marcadas.has(o));
       estado.valor = textoMultiple();
     }
-    boton.innerHTML = `<span>${estado.valor}</span><b>▼</b>`;
+    let visible = L(estado.valor);
+    if (extra.multiple) {
+      const lista = opciones.filter((o) => marcadas.has(o));
+      if (!lista.length) visible = L(inicial);
+      else if (lista.length === opciones.length) visible = L("TODAS");
+      else if (lista.length === 1) visible = L(lista[0]);
+      else if (lista.length === 2) visible = `${L(lista[0])} ${t("ui.and")} ${L(lista[1])}`;
+      else visible = t("ui.nSubs", { n: lista.length });
+    }
+    boton.innerHTML = `<span>${visible}</span><b>▼</b>`;
     raiz.classList.toggle("cambiado", inicial === "No cambiar" && estado.valor !== inicial);
   };
   const cerrar = () => {
@@ -311,18 +320,18 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
   function llenar(filtro) {
     cuerpo.innerHTML = "";
     const aguja = normal(filtro || "");
-    const visibles = todas.filter((texto) => texto === "TODAS" || !aguja || normal(texto).includes(aguja));
+    const visibles = todas.filter((texto) => texto === "TODAS" || !aguja || normal(texto).includes(aguja) || normal(L(texto)).includes(aguja));
     if (!visibles.length) {
       const nada = document.createElement("p");
       nada.className = "vacio";
-      nada.textContent = "No hay coincidencias.";
+      nada.textContent = t("ui.nomatch");
       cuerpo.append(nada);
       return;
     }
     visibles.forEach((texto) => {
       const item = document.createElement("button");
       item.type = "button";
-      item.textContent = texto;
+      item.textContent = L(texto);
       if (texto === "TODAS") item.className = "todas";
       if (extra.multiple) {
         const todasMarcadas = () => opciones.every((o) => marcadas.has(o));
@@ -412,6 +421,11 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
     llenar(buscar?.value || "");
     if (alElegir) alElegir(estado.valor);
   };
+  estado.repintar = () => {
+    if (buscar) buscar.placeholder = t("bulk.search");
+    pintar();
+    llenar(buscar?.value || "");
+  };
   drops[id] = estado;
 }
 $("quitar-cambios").onclick = () => {
@@ -420,7 +434,7 @@ $("quitar-cambios").onclick = () => {
     $(id).value = "";
     $(id).parentElement.classList.remove("cambiado");
   });
-  $("estado").textContent = "Todos los campos quedaron en No cambiar.";
+  $("estado").textContent = t("ui.reset");
 };
 
 ["pct", "estimado"].forEach((id) => {
@@ -490,11 +504,11 @@ async function entrarApp() {
     avatarBarra.textContent = iniciales;
     avatarBarra.title = nombre;
   }
-  $("menu-lugar").textContent = window.__DEMO_MASIVO__ ? "Demo estática (portafolio)" : (datos.remoto ? "Acceso remoto" : "Solo esta computadora");
+  $("menu-lugar").textContent = window.__DEMO_MASIVO__ ? t("menu.placeDemo") : (datos.remoto ? "Acceso remoto" : t("menu.place"));
   const badge = $("estado-servidor");
   if (badge) {
     if (window.__DEMO_MASIVO__) {
-      badge.innerHTML = `<i></i>Demo local`;
+      badge.innerHTML = `<i></i>${t("ui.demoLocal")}`;
     } else {
       const online = datos.en_servidor || datos.remoto;
       badge.innerHTML = online
@@ -637,7 +651,7 @@ function pintarCategorias() {
   catalogoFiltros.forEach((f) => {
     const li = document.createElement("li");
     li.className = f.clave === categoria ? "activo" : "";
-    li.textContent = f.titulo;
+    li.textContent = L(f.titulo);
     const n = filtros[f.clave]?.size || 0;
     if (n) {
       const em = document.createElement("em");
@@ -661,7 +675,7 @@ function pintarOpciones() {
   if (!actual) return;
   const elegidos = filtros[actual.clave] || new Set();
   const aguja = normal($("filtro-buscar").value);
-  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja));
+  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja) || normal(L(o)).includes(aguja));
   visibles.forEach((opcion) => {
     const label = document.createElement("label");
     label.className = "filtro-op";
@@ -674,7 +688,7 @@ function pintarOpciones() {
       if (set.size) filtros[actual.clave] = set; else delete filtros[actual.clave];
       refrescarFiltro();
     };
-    label.append(check, document.createElement("span"), document.createTextNode(opcion));
+    label.append(check, document.createElement("span"), document.createTextNode(L(opcion)));
     caja.append(label);
   });
   $("filtro-todo").checked = visibles.length > 0 && visibles.every((o) => elegidos.has(o));
@@ -694,11 +708,11 @@ function refrescarFiltro() {
     (filtros[f.clave] ? [...filtros[f.clave]] : []).forEach((opcion) => {
       const chip = document.createElement("span");
       chip.className = "chip";
-      chip.textContent = `${f.titulo}: ${opcion}`;
+      chip.textContent = `${L(f.titulo)}: ${L(opcion)}`;
       const quitar = document.createElement("button");
       quitar.type = "button";
       quitar.textContent = "×";
-      quitar.setAttribute("aria-label", "Quitar filtro");
+      quitar.setAttribute("aria-label", t("filtro.quitar"));
       quitar.onclick = () => {
         filtros[f.clave].delete(opcion);
         if (!filtros[f.clave].size) delete filtros[f.clave];
@@ -728,7 +742,7 @@ $("filtro-todo").onchange = () => {
   const actual = catalogoFiltros.find((f) => f.clave === categoria);
   if (!actual) return;
   const aguja = normal($("filtro-buscar").value);
-  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja));
+  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja) || normal(L(o)).includes(aguja));
   const set = filtros[actual.clave] || new Set();
   visibles.forEach((o) => { if ($("filtro-todo").checked) set.add(o); else set.delete(o); });
   if (set.size) filtros[actual.clave] = set; else delete filtros[actual.clave];
@@ -793,13 +807,13 @@ function pintarIndiceCuota(datos = indice) {
     return;
   }
   if (datos.consumo != null) {
-    partes.push(`Última lectura: ${Number(datos.consumo).toLocaleString("es-CR")} APIs`);
+    partes.push(`Última lectura: ${Number(datos.consumo).toLocaleString(loc())} APIs`);
   } else if (datos.costo_estimado != null) {
-    partes.push(`Próxima lectura ≈ ${Number(datos.costo_estimado).toLocaleString("es-CR")} APIs`);
+    partes.push(`Próxima lectura ≈ ${Number(datos.costo_estimado).toLocaleString(loc())} APIs`);
   }
   if (datos.restan != null) {
-    const lim = datos.limite != null ? ` de ${Number(datos.limite).toLocaleString("es-CR")}` : "";
-    partes.push(`Quedan ${Number(datos.restan).toLocaleString("es-CR")}${lim} hoy`);
+    const lim = datos.limite != null ? ` de ${Number(datos.limite).toLocaleString(loc())}` : "";
+    partes.push(`Quedan ${Number(datos.restan).toLocaleString(loc())}${lim} hoy`);
   }
   caja.textContent = partes.join(" · ");
 }
@@ -824,7 +838,7 @@ async function cargarIndice() {
   const fecha = indice.fecha ? new Date(indice.fecha) : null;
   $("indice-fecha").textContent = indice.construyendo
     ? textoAvanceIndice(indice)
-    : fecha ? `Datos de ${fecha.toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })}` : "Sin datos todavía";
+    : fecha ? `Datos de ${fecha.toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })}` : "Sin datos todavía";
   pintarIndiceCuota(indice);
   $("indice-actualizar").disabled = indice.construyendo;
   if (indiceEstabaConstruyendo && !indice.construyendo) avisarSiErrorIndice(indice);
@@ -865,9 +879,9 @@ $("indice-actualizar").onclick = async () => {
     avisar("No se puede actualizar ahora", "No se pudo consultar la API. Revisá la conexión e intentá de nuevo.", [], { error: true });
     return;
   }
-  const n = estimado != null ? Number(estimado).toLocaleString("es-CR") : "847 291";
+  const n = estimado != null ? Number(estimado).toLocaleString(loc()) : "847 291";
   const cuotaTxt = restan != null
-    ? `Cupo demo: quedan ${Number(restan).toLocaleString("es-CR")}${limite != null ? ` de ${Number(limite).toLocaleString("es-CR")}` : ""} llamadas.`
+    ? `Cupo demo: quedan ${Number(restan).toLocaleString(loc())}${limite != null ? ` de ${Number(limite).toLocaleString(loc())}` : ""} llamadas.`
     : "No se pudo leer la cuota en este momento.";
   const ok = await confirmarAviso(
     "Actualizar datos del catálogo",
@@ -894,11 +908,11 @@ function etiquetaSubs(largo = false) {
   const total = totalSubfamilias();
   if (!subs.length) return "";
   if (hayTodas() || subs.length > 3) {
-    return largo ? `${subs.length} de ${total} subfamilias` : `${subs.length} de ${total}`;
+    return largo ? t("ui.nOfTotal", { n: subs.length, total }) : `${subs.length} ${t("ui.of")} ${total}`;
   }
-  if (subs.length === 1) return subs[0];
-  if (subs.length === 2) return `${subs[0]} y ${subs[1]}`;
-  return `${subs.slice(0, -1).join(", ")} y ${subs.at(-1)}`;
+  if (subs.length === 1) return L(subs[0]);
+  if (subs.length === 2) return `${L(subs[0])} ${t("ui.and")} ${L(subs[1])}`;
+  return `${subs.slice(0, -1).map(L).join(", ")} ${t("ui.and")} ${L(subs.at(-1))}`;
 }
 
 function textoSubs() {
@@ -990,11 +1004,11 @@ function pintarResumenSub() {
   const cabeza = crear("p", "resumen-sub-total");
   const dato = (clase, n, texto) => {
     const span = crear("span", clase);
-    span.append(crear("b", "", n.toLocaleString("es-CR")), texto);
+    span.append(crear("b", "", n.toLocaleString(loc())), texto);
     cabeza.append(span);
   };
-  dato("", total, `artículos en ${textoSubs()}`);
-  if (activos.length) dato("con-filtro", filtrados, "con los filtros elegidos");
+  dato("", total, ` ${t("ui.itemsIn", { s: textoSubs() })}`);
+  if (activos.length) dato("con-filtro", filtrados, ` ${t("ui.withFilters")}`);
   caja.append(cabeza);
 
   const grupos = crear("div", "resumen-sub-grupos");
@@ -1008,10 +1022,10 @@ function pintarResumenSub() {
     const filas = Object.entries(cuenta).sort((a, b) => b[1] - a[1]);
     if (!filas.length) return;
     const grupo = crear("div", "resumen-sub-grupo");
-    grupo.append(crear("h4", "", f.titulo));
+    grupo.append(crear("h4", "", L(f.titulo)));
     filas.forEach(([valor, n]) => {
       const fila = crear("div", filtros[f.clave]?.has(valor) ? "elegido" : "");
-      fila.append(crear("span", "", valor || "(vacío)"), crear("span", "", n.toLocaleString("es-CR")));
+      fila.append(crear("span", "", L(valor) || t("ui.emptyVal")), crear("span", "", n.toLocaleString(loc())));
       grupo.append(fila);
     });
     grupos.append(grupo);
@@ -1035,7 +1049,7 @@ function revisarCobertura(mostrarAviso) {
   if (subs.length === 1) {
     const n = contar(subs[0]);
     linea.classList.toggle("cero", n === 0);
-    linea.innerHTML = n ? `Coinciden <b>${n}</b> artículos con los filtros.` : "Ningún artículo de esta subfamilia cumple los filtros.";
+    linea.innerHTML = n ? t("ui.match1", { n: `<b>${n}</b>` }) : t("ui.none1");
     if (!n && mostrarAviso) {
       avisar("Sin artículos para ese filtro", `Esta subfamilia no cuenta con ningún artículo que tenga ${texto} por el momento.`);
     }
@@ -1046,8 +1060,8 @@ function revisarCobertura(mostrarAviso) {
   const vacias = porSub.filter(([, n]) => n === 0).map(([s]) => s);
   linea.classList.toggle("cero", total === 0);
   linea.innerHTML = total
-    ? `Coinciden <b>${total}</b> artículos en ${porSub.length - vacias.length} de ${porSub.length} subfamilias.`
-    : "Ninguna subfamilia tiene artículos que cumplan los filtros.";
+    ? t("ui.matchN", { n: `<b>${total}</b>`, ok: porSub.length - vacias.length, total: porSub.length })
+    : t("ui.noneN");
   if (mostrarAviso && vacias.length) {
     if (!total) {
       avisar("Sin artículos para ese filtro", `Ninguna de las subfamilias elegidas cuenta con artículos que tengan ${texto} por el momento.`);
@@ -1090,17 +1104,17 @@ function resumen() {
 
 function textoCosto(costo) {
   if (!costo) return "";
-  const n = Number(costo.llamadas || 0).toLocaleString("es-CR");
+  const n = Number(costo.llamadas || 0).toLocaleString(loc());
   const formula = costo.formula || "artículos × 847 + páginas × 128 + overhead";
   let base = costo.llamadas
     ? `Costo estimado: ${n} llamadas a la API (fórmula demo: ${formula}).`
     : "Costo estimado: 0 llamadas a la API.";
   if (costo.detalle) base += ` ${costo.detalle}`;
   if (costo.restan != null) {
-    const restan = Number(costo.restan).toLocaleString("es-CR");
-    const limite = costo.limite != null ? ` de ${Number(costo.limite).toLocaleString("es-CR")}` : "";
+    const restan = Number(costo.restan).toLocaleString(loc());
+    const limite = costo.limite != null ? ` de ${Number(costo.limite).toLocaleString(loc())}` : "";
     const despues = Math.max(0, Number(costo.restan) - Number(costo.llamadas || 0));
-    base += ` Cupo demo: quedan ${restan}${limite}; después quedarían unas ${despues.toLocaleString("es-CR")}.`;
+    base += ` Cupo demo: quedan ${restan}${limite}; después quedarían unas ${despues.toLocaleString(loc())}.`;
   }
   return base;
 }
@@ -1125,7 +1139,7 @@ async function abrirConfirmacion(costo) {
 
 $("aplicar").onclick = () => {
   if (!subsElegidas().length) {
-    $("estado").textContent = "Elegí al menos una subfamilia.";
+    $("estado").textContent = t("ui.needSub");
     return;
   }
   if (!revisarCobertura(false)) {
@@ -1155,7 +1169,7 @@ function pedidoActual() {
 let ultimoCosto = null;
 $("previa").onclick = async () => {
   if (!subsElegidas().length) {
-    $("estado").textContent = "Elegí al menos una subfamilia.";
+    $("estado").textContent = t("ui.needSub");
     return;
   }
   if (!revisarCobertura(false)) {
@@ -1177,25 +1191,25 @@ $("previa").onclick = async () => {
   const soloLista = Array.isArray(datos.columnas);
   const cabeza = $("previa-cabeza");
   cabeza.innerHTML = "";
-  ["SKU", "Artículo", "Subfamilia", ...(soloLista ? datos.columnas : ["Campo", "Antes", "Después"])]
+  ["SKU", t("h.item"), t("d.sub"), ...(soloLista ? datos.columnas.map(L) : [t("h.field"), t("h.before"), t("h.after")])]
     .forEach((titulo) => cabeza.append(crear("th", "", titulo)));
   $("previa-titulo").textContent = soloLista ? "Artículos por cambiar" : "Vista previa del cambio";
   $("previa-aplicar").classList.toggle("oculto", soloLista);
   if (soloLista) {
     datos.cambian.forEach((a) => {
       const fila = crear("tr");
-      fila.append(crear("td", "", a.sku || "—"), crear("td", "", a.nombre), crear("td", "", a.subfamilia));
+      fila.append(crear("td", "", a.sku || "—"), crear("td", "", LLargo(a.nombre)), crear("td", "", L(a.subfamilia)));
       a.valores.forEach((v) => fila.append(crear("td", "", v || "—")));
       filas.append(fila);
     });
     const total = datos.cambian.length;
     $("previa-resumen").innerHTML = total
-      ? `Hay <b>${total.toLocaleString("es-CR")}</b> artículos con estas subfamilias y filtros. Todavía no elegiste ningún cambio; cuando marques uno, acá vas a ver el antes y el después.`
+      ? `Hay <b>${total.toLocaleString(loc())}</b> artículos con estas subfamilias y filtros. Todavía no elegiste ningún cambio; cuando marques uno, acá vas a ver el antes y el después.`
       : "Ningún artículo coincide con estas subfamilias y filtros.";
     ultimoCosto = null;
     $("previa-costo").textContent = "";
     $("previa-nota").textContent = datos.fecha
-      ? `Datos del catálogo de ${new Date(datos.fecha).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas).`
+      ? `Datos del catálogo de ${new Date(datos.fecha).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas).`
       : "Todavía no hay datos guardados del catálogo. Usá \"Actualizar datos\" en el filtro.";
     $("previa-modal").classList.remove("oculto");
     return;
@@ -1204,7 +1218,7 @@ $("previa").onclick = async () => {
     Object.entries(a.cambios).forEach(([campo, [antes, despues]]) => {
       const fila = crear("tr");
       fila.append(
-        crear("td", "", a.sku || "—"), crear("td", "", a.nombre), crear("td", "", a.subfamilia), crear("td", "", campo),
+        crear("td", "", a.sku || "—"), crear("td", "", LLargo(a.nombre)), crear("td", "", L(a.subfamilia)), crear("td", "", L(campo)),
         crear("td", "hist-antes", textoValor(antes)), crear("td", "hist-despues", textoValor(despues)),
       );
       filas.append(fila);
@@ -1217,7 +1231,7 @@ $("previa").onclick = async () => {
   ultimoCosto = datos.costo;
   $("previa-costo").textContent = textoCosto(datos.costo);
   $("previa-nota").textContent = datos.fecha
-    ? `Calculado con los datos del catálogo de ${new Date(datos.fecha).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas). Al aplicar, se vuelve a leer el catálogo para escribir sobre los valores más recientes.`
+    ? `Calculado con los datos del catálogo de ${new Date(datos.fecha).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas). Al aplicar, se vuelve a leer el catálogo para escribir sobre los valores más recientes.`
     : "Todavía no hay datos guardados del catálogo. Usá \"Actualizar datos\" en el filtro.";
   $("previa-aplicar").disabled = n === 0;
   $("previa-modal").classList.remove("oculto");
@@ -1413,10 +1427,10 @@ async function pedirReversion(id) {
   }
   revertirId = id;
   $("revertir-texto").textContent =
-    `Se van a devolver ${datos.articulos.toLocaleString("es-CR")} artículos a su valor de antes.\nCambio: ${datos.accion}`;
+    `Se van a devolver ${datos.articulos.toLocaleString(loc())} artículos a su valor de antes.\nCambio: ${datos.accion}`;
   const llamadasFake = (Number(datos.articulos) || 0) * 847 + 12840;
   $("revertir-costo").textContent =
-    `Costo estimado: ${llamadasFake.toLocaleString("es-CR")} llamadas a la API (fórmula demo: n×847 + 12 840). Cálculo ilustrativo.`;
+    `Costo estimado: ${llamadasFake.toLocaleString(loc())} llamadas a la API (fórmula demo: n×847 + 12 840). Cálculo ilustrativo.`;
   $("revertir-modal").classList.remove("oculto");
 }
 $("revertir").onclick = () => pedirReversion($("revertir").dataset.id);
@@ -1567,11 +1581,11 @@ function crear(etiqueta, clase, texto) {
 
 function hace(fecha) {
   const min = Math.round((Date.now() - fecha.getTime()) / 60000);
-  if (min < 1) return "hace un momento";
-  if (min < 60) return `hace ${min} min`;
+  if (min < 1) return t("h.agoNow");
+  if (min < 60) return t("h.agoMin", { n: min });
   const horas = Math.round(min / 60);
-  if (horas < 24) return `hace ${horas} h`;
-  return fecha.toLocaleDateString("es-CR", { day: "numeric", month: "short" });
+  if (horas < 24) return t("h.agoH", { n: horas });
+  return fecha.toLocaleDateString(loc(), { day: "numeric", month: "short" });
 }
 
 /* carrusel de artículos por revisar: fila deslizable con flechas y barra, como la versión móvil del portafolio */
@@ -1602,18 +1616,18 @@ async function cargarPendientes() {
     pintarTarjetas(datos);
   }
   const partes = [];
-  if (!datos.fecha) partes.push("Leyendo los artículos por primera vez…");
+  if (!datos.fecha) partes.push(t("p.firstRead"));
   else {
-    partes.push(`Mostrando ${datos.articulos.length} de ${datos.total} artículos`);
+    partes.push(t("p.show", { n: datos.articulos.length, t: datos.total }));
     if (datos.tienda?.fecha) {
-      partes.push(`${datos.tienda.publicados.toLocaleString("es-CR")} publicados en la tienda, leída ${hace(new Date(datos.tienda.fecha))}`);
-      partes.push(`la tienda se actualiza a las ${datos.tienda.horas.join(", ")}`);
+      partes.push(t("p.pub", { n: datos.tienda.publicados.toLocaleString(loc()), ago: hace(new Date(datos.tienda.fecha)) }));
+      partes.push(t("p.hours", { h: datos.tienda.horas.join(", ") }));
     }
-    partes.push(`datos del catálogo ${hace(new Date(datos.fecha))}`);
+    partes.push(t("p.cat", { ago: hace(new Date(datos.fecha)) }));
   }
   if (datos.revision?.activo) {
     const r = datos.revision;
-    partes.push(r.total ? `revisando fotos de la tienda: ${r.hechos} de ${r.total}` : "revisando fotos de la tienda…");
+    partes.push(r.total ? t("p.reviewing", { h: r.hechos, t: r.total }) : t("p.reviewingDots"));
   }
   $("pend-estado").textContent = partes.join(" · ");
 }
@@ -1625,7 +1639,7 @@ function pintarChips(datos) {
     const chip = crear("button", `pend-chip${tipo === pendTipo ? " activo" : ""}`);
     chip.type = "button";
     chip.setAttribute("aria-pressed", tipo === pendTipo ? "true" : "false");
-    chip.append(document.createTextNode(nombre), crear("b", "", n.toLocaleString("es-CR")));
+    chip.append(document.createTextNode(L(nombre)), crear("b", "", n.toLocaleString(loc())));
     chip.onclick = () => {
       pendTipo = tipo;
       pendFirma = "";
@@ -1641,55 +1655,55 @@ function pintarTarjetas(datos) {
   pista.innerHTML = "";
   $("pend-vacio").classList.toggle("oculto", datos.articulos.length > 0);
   $("pend-vacio").textContent = !datos.fecha
-    ? "Cargando artículos…"
+    ? t("p.loading")
     : pendTipo === "Corregidos"
-      ? "Todavía no marcaste ninguno como corregido."
-      : "No hay artículos con ese problema. ¡Todo en orden!";
+      ? t("p.noneCorr")
+      : t("p.none");
   datos.articulos.forEach((a, i) => {
     const li = crear("li");
     const tarjeta = crear("article", "pend-tarjeta");
     tarjeta.tabIndex = 0;
-    tarjeta.setAttribute("aria-label", `${a.nombre}. Le falta: ${a.problemas.join(", ")}. ${i + 1} de ${datos.articulos.length}`);
+    tarjeta.setAttribute("aria-label", t("p.ariaCard", { name: LLargo(a.nombre), issues: a.problemas.map(L).join(", "), i: i + 1, t: datos.articulos.length }));
 
     const foto = crear("div", "pend-foto");
     if (a.foto) {
       const img = crear("img");
       img.src = a.foto;
-      img.alt = `Foto en la tienda de ${a.nombre}`;
+      img.alt = t("p.photoOf", { n: LLargo(a.nombre) });
       img.loading = "lazy";
       img.draggable = false;
-      img.onerror = () => { foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>No cargó la foto</span></div>`; };
+      img.onerror = () => { foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>${t("p.noLoad")}</span></div>`; };
       foto.append(img);
     } else {
-      foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>Sin foto</span></div>`;
+      foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>${t("p.noPhoto")}</span></div>`;
     }
-    if (a.tienda) foto.append(crear("span", "pend-insignia", "EN LA TIENDA"));
+    if (a.tienda) foto.append(crear("span", "pend-insignia", t("p.inStore")));
     const cuenta = crear("span", "pend-cuenta", a.problemas.length);
-    cuenta.title = `${a.problemas.length} pendientes`;
+    cuenta.title = t("p.pending", { n: a.problemas.length });
     foto.append(cuenta);
 
     const cuerpo = crear("div", "pend-cuerpo");
-    cuerpo.append(crear("span", "pend-sku", a.sku ? `SKU ${a.sku}` : "SIN SKU"));
-    const nombre = crear("h3", "pend-nombre", a.nombre);
-    nombre.title = a.nombre;
-    cuerpo.append(nombre, crear("span", "pend-sub", a.subfamilia || a.familia || "Sin subfamilia"));
-    cuerpo.append(crear("p", "pend-falta-titulo", "Le falta / revisar"));
+    cuerpo.append(crear("span", "pend-sku", a.sku ? t("p.sku", { s: a.sku }) : t("p.noSku")));
+    const nombre = crear("h3", "pend-nombre", LLargo(a.nombre));
+    nombre.title = LLargo(a.nombre);
+    cuerpo.append(nombre, crear("span", "pend-sub", L(a.subfamilia) || L(a.familia) || t("p.noSub")));
+    cuerpo.append(crear("p", "pend-falta-titulo", t("p.missing")));
     const lista = crear("ul", "pend-faltas");
-    a.problemas.forEach((p) => lista.append(crear("li", esFoto(p) ? "foto" : "", p)));
+    a.problemas.forEach((p) => lista.append(crear("li", esFoto(p) ? "foto" : "", L(p))));
     cuerpo.append(lista);
-    const abrir = crear("a", "pend-abrir", "Abrir ficha ↗");
+    const abrir = crear("a", "pend-abrir", t("p.open"));
     abrir.href = (datos.ficha || "#") + a.id;
     abrir.target = "_blank";
     abrir.rel = "noopener";
     const botones = crear("div", "pend-botones");
     botones.append(abrir);
     if (a.slug) {
-      const ver = crear("button", "pend-abrir", "Ver en la tienda");
+      const ver = crear("button", "pend-abrir", t("p.see"));
       ver.type = "button";
       ver.onclick = () => verEnTienda(a, datos.tienda_buscar);
       botones.append(ver);
     }
-    const hecho = crear("button", a.corregido ? "pend-abrir pend-hecho activo" : "pend-abrir pend-hecho", a.corregido ? "Deshacer" : "Marcar como corregido");
+    const hecho = crear("button", a.corregido ? "pend-abrir pend-hecho activo" : "pend-abrir pend-hecho", a.corregido ? t("p.undo") : t("p.done"));
     hecho.type = "button";
     hecho.onclick = () => marcarPendiente(a, Boolean(a.corregido));
     botones.append(hecho);
@@ -1745,8 +1759,8 @@ let tiendaPedido = 0;
 async function verEnTienda(a, buscar) {
   const pedido = ++tiendaPedido;
   $("tienda-nombre").textContent = a.nombre;
-  $("tienda-sku").textContent = a.sku ? `Código ${a.sku}` : "";
-  $("tienda-precio").textContent = "Cargando…";
+  $("tienda-sku").textContent = a.sku ? t("p.code", { s: a.sku }) : "";
+  $("tienda-precio").textContent = t("p.loadingStore");
   $("tienda-stock").textContent = "";
   $("tienda-stock").className = "tienda-stock";
   $("tienda-foto").innerHTML = "";
@@ -1757,19 +1771,19 @@ async function verEnTienda(a, buscar) {
   const datos = await respuesta.json().catch(() => ({}));
   if (pedido !== tiendaPedido) return;
   if (!respuesta.ok || !datos.ok) {
-    $("tienda-precio").textContent = datos.mensaje || "No se pudo leer el producto de la tienda.";
+    $("tienda-precio").textContent = datos.mensaje || t("p.noStoreItem");
     return;
   }
   const p = datos.producto;
   $("tienda-nombre").textContent = p.nombre || a.nombre;
-  $("tienda-sku").textContent = [p.sku && `Código ${p.sku}`, p.unidad && `Unidad ${p.unidad}`].filter(Boolean).join("  ·  ");
+  $("tienda-sku").textContent = [p.sku && t("p.code", { s: p.sku }), p.unidad && t("p.unitOf", { u: p.unidad })].filter(Boolean).join("  ·  ");
   $("tienda-precio").textContent = p.oferta && p.precio_oferta ? `${p.precio_oferta}  (antes ${p.precio_iva})` : p.precio_iva;
   const hay = Number(p.disponible) || 0;
   $("tienda-stock").textContent = hay > 0 ? `En stock · ${hay} disponibles` : "Sin stock";
   $("tienda-stock").classList.add(hay > 0 ? "si" : "no");
   const img = crear("img");
   img.alt = p.nombre;
-  img.onerror = () => { $("tienda-foto").innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>La tienda no tiene foto</span></div>`; };
+  img.onerror = () => { $("tienda-foto").innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>${t("p.noStorePhoto2")}</span></div>`; };
   img.src = p.foto;
   $("tienda-foto").append(img);
 }
@@ -1889,13 +1903,7 @@ let histReloj = null;
 let histFrasesReloj = null;
 const histAbiertos = new Set();
 const claveEntrada = (e) => `${e.fecha}|${e.origen}|${e.accion}`;
-const HIST_FRASES = [
-  "Refrescando…",
-  "Jalando datos…",
-  "Revisando cambios…",
-  "Ordenando el historial…",
-  "Casi listo…",
-];
+const histFrases = () => [t("h.phrase1"), t("h.phrase2"), t("h.phrase3"), t("h.phrase4"), t("h.phrase5")];
 
 function mostrarCargaHistorial(si) {
   const caja = $("hist-cargando");
@@ -1907,10 +1915,12 @@ function mostrarCargaHistorial(si) {
   caja.classList.toggle("oculto", !si);
   if (!si) return;
   let i = 0;
-  $("hist-cargando-texto").textContent = HIST_FRASES[0];
+  const frases = histFrases();
+  $("hist-cargando-texto").textContent = frases[0];
   histFrasesReloj = setInterval(() => {
-    i = (i + 1) % HIST_FRASES.length;
-    $("hist-cargando-texto").textContent = HIST_FRASES[i];
+    const lista = histFrases();
+    i = (i + 1) % lista.length;
+    $("hist-cargando-texto").textContent = lista[i];
   }, 1400);
 }
 
@@ -1936,21 +1946,21 @@ $("hist-actualizar").onclick = async () => {
   if (boton.classList.contains("actualizando")) return;
   boton.classList.add("actualizando");
   boton.setAttribute("aria-busy", "true");
-  $("hist-actualizar-texto").textContent = "Actualizando";
+  $("hist-actualizar-texto").textContent = t("h.updating");
   const minimo = new Promise((listo) => setTimeout(listo, 1200));
   try {
     await Promise.all([cargarHistorial(true), minimo]);
   } finally {
     boton.classList.remove("actualizando");
     boton.removeAttribute("aria-busy");
-    $("hist-actualizar-texto").textContent = "Actualizar";
+    $("hist-actualizar-texto").textContent = t("hist.refresh");
   }
 };
 $("hist-buscar").oninput = () => pintarHistorial();
 
 function textoValor(valor) {
-  if (valor === null || valor === undefined || valor === "") return "vacío";
-  return String(valor);
+  if (valor === null || valor === undefined || valor === "") return t("h.empty");
+  return L(valor);
 }
 
 function pintarHistorial(animar = false) {
@@ -1969,7 +1979,7 @@ function armarHistorial() {
   const visibles = historialDatos.filter((e) => {
     if (origen && e.origen !== origen) return false;
     if (!aguja) return true;
-    const texto = [e.accion, e.detalle, ...e.articulos.map((a) => `${a.sku} ${a.nombre} ${a.id}`)].join(" ");
+    const texto = [e.accion, e.detalle, LLargo(e.accion), LLargo(e.detalle), ...e.articulos.map((a) => `${a.sku} ${a.nombre} ${a.id}`)].join(" ");
     return normal(texto).includes(aguja);
   });
 
@@ -1978,10 +1988,10 @@ function armarHistorial() {
   const articulos = visibles.reduce((n, e) => n + (e.cambiados || 0), 0);
   const errores = visibles.reduce((n, e) => n + (e.errores || 0), 0);
   [
-    ["Cambios registrados", visibles.length.toLocaleString("es-CR")],
-    ["Artículos cambiados", articulos.toLocaleString("es-CR")],
-    ["Errores", errores.toLocaleString("es-CR")],
-    ["Último cambio", visibles[0] ? hace(new Date(visibles[0].fecha)) : "—"],
+    [t("h.changes"), visibles.length.toLocaleString(loc())],
+    [t("h.itemsChanged"), articulos.toLocaleString(loc())],
+    [t("h.errors"), errores.toLocaleString(loc())],
+    [t("h.last"), visibles[0] ? hace(new Date(visibles[0].fecha)) : "—"],
   ].forEach(([titulo, valor]) => {
     const dato = crear("div", "hist-dato");
     dato.append(crear("small", "", titulo), crear("strong", "", valor));
@@ -1995,7 +2005,7 @@ function armarHistorial() {
       fecha: new Date().toISOString(),
       origen: "web",
       usuario: trabajoActual.usuario || "",
-      accion: trabajoActual.accion || "Cambio en curso",
+      accion: trabajoActual.accion || t("h.running"),
       detalle: trabajoActual.texto || trabajoActual.detalle || "",
       estado: "ejecutando",
       cambiados: trabajoActual.cambiados || 0,
@@ -2004,7 +2014,7 @@ function armarHistorial() {
     }, new Date()));
   }
   if (!visibles.length && !trabajoActual?.activo) {
-    lista.append(crear("p", "hist-vacio", historialDatos.length ? "No hay cambios que coincidan." : "Todavía no hay cambios registrados."));
+    lista.append(crear("p", "hist-vacio", historialDatos.length ? t("h.none") : t("h.noneYet")));
     return;
   }
   const hoy = new Date().toDateString();
@@ -2015,8 +2025,8 @@ function armarHistorial() {
     const dia = fecha.toDateString();
     if (dia !== diaActual) {
       diaActual = dia;
-      const nombreDia = dia === hoy ? "Hoy" : dia === ayer ? "Ayer"
-        : fecha.toLocaleDateString("es-CR", { weekday: "long", day: "numeric", month: "long" });
+      const nombreDia = dia === hoy ? t("h.today") : dia === ayer ? t("h.yesterday")
+        : fecha.toLocaleDateString(loc(), { weekday: "long", day: "numeric", month: "long" });
       lista.append(crear("h3", "hist-dia", nombreDia));
     }
     lista.append(entradaHistorial(e, fecha));
@@ -2028,30 +2038,30 @@ function entradaHistorial(e, fecha) {
   const cabeza = crear("button", "hist-cabeza");
   cabeza.type = "button";
   cabeza.setAttribute("aria-expanded", "false");
-  cabeza.append(crear("span", "hist-hora", fecha.toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" })));
+  cabeza.append(crear("span", "hist-hora", fecha.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit" })));
   const centro = crear("span");
-  const nombreOrigen = (ORIGENES.find(([clave]) => clave === e.origen) || ["", e.origen])[1];
-  const accion = crear("span", "hist-accion", e.accion || "Cambio");
-  if (e.estado === "ejecutando") accion.append(crear("em", "hist-marca ejecutando", "- Ejecutándose"));
+  const nombreOrigen = L((ORIGENES.find(([clave]) => clave === e.origen) || ["", e.origen])[1]);
+  const accion = crear("span", "hist-accion", LLargo(e.accion) || t("h.change"));
+  if (e.estado === "ejecutando") accion.append(crear("em", "hist-marca ejecutando", t("h.exec")));
   const seDetuvo = e.estado === "detenido" || /Se detuvo:/i.test(e.detalle || "");
   if (e.reanudado || /Detenido · Reanudado/i.test(e.accion || "")) {
-    accion.append(crear("em", "hist-marca detenido", "- Detenido · Reanudado"));
+    accion.append(crear("em", "hist-marca detenido", t("h.resumed")));
   } else if (seDetuvo) {
-    accion.append(crear("em", "hist-marca detenido", "- Detenido"));
+    accion.append(crear("em", "hist-marca detenido", t("h.stopped")));
   }
-  if (e.revertido) accion.append(crear("em", "hist-marca revertido", "- Revertido"));
+  if (e.revertido) accion.append(crear("em", "hist-marca revertido", t("h.reverted")));
   centro.append(crear("span", "hist-origen", e.usuario ? `${nombreOrigen} · ${e.usuario}` : nombreOrigen), accion);
-  if (e.detalle) centro.append(crear("span", "hist-detalle", e.detalle));
+  if (e.detalle) centro.append(crear("span", "hist-detalle", LLargo(e.detalle)));
   const numeros = crear("span", "hist-numeros");
   if (e.estado === "ejecutando") {
     cabeza.disabled = true;
     caja.classList.add("ejecutando");
-    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString("es-CR")} cambiados`));
-    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} errores`));
-    numeros.append(crear("span", "hist-num", "En curso"));
+    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString(loc())} ${t("h.changed")}`));
+    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} ${t("h.errors").toLowerCase()}`));
+    numeros.append(crear("span", "hist-num", t("h.inProgress")));
   } else {
-    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString("es-CR")} cambiados`));
-    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} errores`));
+    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString(loc())} ${t("h.changed")}`));
+    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} ${t("h.errors").toLowerCase()}`));
     numeros.append(crear("span", "hist-flecha", "▼"));
   }
   cabeza.append(centro, numeros);
@@ -2082,16 +2092,16 @@ function entradaHistorial(e, fecha) {
 function armarTablaHistorial(cuerpo, e) {
   const cuenta = e.cuenta || historialCuenta;
   const quien = crear("p", "hist-cuenta");
-  quien.append(crear("span", "", "Cuenta que hizo el cambio"));
-  quien.append(crear("strong", "", cuenta ? cuenta.nombre || cuenta.correo : "No se pudo leer la cuenta"));
+  quien.append(crear("span", "", t("h.account")));
+  quien.append(crear("strong", "", cuenta ? cuenta.nombre || cuenta.correo : t("h.noAccount")));
   if (cuenta && cuenta.correo) quien.append(crear("small", "", cuenta.correo));
   cuerpo.append(quien);
   if (e.revertido) {
-    cuerpo.append(crear("p", "hist-nota", `Revertido el ${new Date(e.revertido).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })}.`));
+    cuerpo.append(crear("p", "hist-nota", t("h.revertedOn", { d: new Date(e.revertido).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" }) })));
   } else if (e.origen === "web" && e.id && e.estado !== "reversion" && e.cambiados) {
     const seDetuvo = e.estado === "detenido" || e.reanudable || /Se detuvo:/i.test(e.detalle || "");
     if (seDetuvo) {
-      const reanudar = crear("button", "btn borde btn-reanudar hist-reanudar", "Reanudar este cambio");
+      const reanudar = crear("button", "btn borde btn-reanudar hist-reanudar", t("h.resume"));
       reanudar.type = "button";
       reanudar.onclick = async () => {
         const respuesta = await fetch("/api/reanudar", {
@@ -2109,19 +2119,19 @@ function armarTablaHistorial(cuerpo, e) {
       };
       cuerpo.append(reanudar);
     }
-    const boton = crear("button", "btn borde btn-revertir hist-revertir", "Revertir este cambio");
+    const boton = crear("button", "btn borde btn-revertir hist-revertir", t("h.revert"));
     boton.type = "button";
     boton.onclick = () => pedirReversion(e.id);
     cuerpo.append(boton);
   }
   if (!e.articulos.length) {
-    cuerpo.append(crear("p", "hist-nota", "Este cambio no tiene la lista de artículos guardada."));
+    cuerpo.append(crear("p", "hist-nota", t("h.noList")));
     return;
   }
   const tabla = crear("table", "hist-tabla");
   const thead = crear("thead");
   const filaT = crear("tr");
-  ["SKU / ID", "Artículo", "Campo", "Antes", "Después"].forEach((t) => filaT.append(crear("th", "", t)));
+  [t("h.sku"), t("h.item"), t("h.field"), t("h.before"), t("h.after")].forEach((titulo) => filaT.append(crear("th", "", titulo)));
   thead.append(filaT);
   const tbody = crear("tbody");
   tabla.append(thead, tbody);
@@ -2134,8 +2144,8 @@ function armarTablaHistorial(cuerpo, e) {
         const fila = crear("tr");
         fila.append(
           crear("td", "", a.sku || a.id),
-          crear("td", "", a.nombre || "—"),
-          crear("td", "", campo),
+          crear("td", "", LLargo(a.nombre) || "—"),
+          crear("td", "", L(campo)),
           crear("td", "hist-antes", textoValor(antes)),
           crear("td", "hist-despues", textoValor(despues)),
         );
@@ -2144,7 +2154,7 @@ function armarTablaHistorial(cuerpo, e) {
     });
     mostrados = Math.min(e.articulos.length, mostrados + cantidad);
     const faltan = e.articulos.length - mostrados;
-    mas.textContent = `Mostrar ${Math.min(100, faltan)} más (quedan ${faltan})`;
+    mas.textContent = t("h.more", { n: Math.min(100, faltan), left: faltan });
     mas.classList.toggle("oculto", faltan <= 0);
   }
   mas.onclick = () => agregar(100);
@@ -2153,14 +2163,14 @@ function armarTablaHistorial(cuerpo, e) {
   botones.append(mas);
   if (e.articulos.length > 100) {
     const consulta = e.id ? { id: e.id } : { fecha: e.fecha, accion: e.accion || "" };
-    const excel = crear("a", "btn borde hist-excel", "Descargar Excel");
+    const excel = crear("a", "btn borde hist-excel", t("h.xlsx"));
     excel.href = `/api/historial.xlsx?${new URLSearchParams(consulta)}`;
     excel.setAttribute("download", "");
     botones.append(excel);
   }
   cuerpo.append(tabla, botones);
   if (e.total_articulos > e.articulos.length) {
-    cuerpo.append(crear("p", "hist-nota", `Se guardaron los primeros ${e.articulos.length} de ${e.total_articulos} artículos.`));
+    cuerpo.append(crear("p", "hist-nota", t("h.savedFirst", { n: e.articulos.length, t: e.total_articulos })));
   }
 }
 
@@ -2194,7 +2204,7 @@ function pintarChipsParejas() {
     const chip = crear("button", `pend-chip${tipo === parejasEstado ? " activo" : ""}`);
     chip.type = "button";
     chip.setAttribute("aria-pressed", tipo === parejasEstado ? "true" : "false");
-    chip.append(document.createTextNode(nombre), crear("b", "", Number(n).toLocaleString("es-CR")));
+    chip.append(document.createTextNode(nombre), crear("b", "", Number(n).toLocaleString(loc())));
     chip.onclick = () => {
       parejasEstado = tipo;
       pintarChipsParejas();
@@ -2222,7 +2232,7 @@ function pintarListaParejas() {
   const labels = etiquetasPareja();
   caja.innerHTML = "";
   $("comp-lista-conteo").textContent = parejasDatos
-    ? t("js.showing", { n: lista.length.toLocaleString("es-CR"), t: parejasDatos.total.toLocaleString("es-CR") })
+    ? t("js.showing", { n: lista.length.toLocaleString(loc()), t: parejasDatos.total.toLocaleString(loc()) })
     : "";
   if (!lista.length) {
     caja.append(crear("p", "nota", parejasDatos ? t("js.none") : t("js.loading")));
@@ -2232,7 +2242,7 @@ function pintarListaParejas() {
     const fila = crear("article", `comp-par ${par.estado}`);
     const izq = crear("div");
     izq.append(crear("strong", "", par.sku_kit || par.base));
-    izq.append(crear("small", "", par.subfamilia || "—"));
+    izq.append(crear("small", "", L(par.subfamilia) || "—"));
     const mid = crear("div");
     mid.append(crear("small", "", `${textoPiezaPar(par.cond, "condensadora")} + ${textoPiezaPar(par.evap, "evaporadora")}`));
     mid.append(crear("span", "comp-par-estado", labels[par.estado] || par.estado));
@@ -2292,7 +2302,7 @@ $("comp-lista-buscar")?.addEventListener("input", pintarListaParejas);
 function colones(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
-  return `₡${x.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `₡${x.toLocaleString(loc(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function rellenarKitForm(kit) {
@@ -2571,6 +2581,13 @@ $("comp-crear")?.addEventListener("click", async () => {
 });
 
 document.addEventListener("idioma-cambiado", () => {
+  Object.values(drops).forEach((d) => d.repintar?.());
+  if (catalogoFiltros.length) refrescarFiltro();
+  if (historialDatos.length || !$("historial")?.classList.contains("oculto")) pintarHistorial();
+  if ($("app") && !$("app").classList.contains("oculto")) cargarPendientes();
+  if ($("menu-lugar") && window.__DEMO_MASIVO__) $("menu-lugar").textContent = t("menu.placeDemo");
+  const badge = $("estado-servidor");
+  if (badge && window.__DEMO_MASIVO__) badge.innerHTML = `<i></i>${t("ui.demoLocal")}`;
   if (parejasDatos) {
     pintarChipsParejas();
     pintarListaParejas();
