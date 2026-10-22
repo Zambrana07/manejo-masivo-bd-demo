@@ -942,20 +942,24 @@
     if (aria) el.setAttribute("aria-label", t(aria));
   }
 
-  function aplicar() {
+  function aplicar(opts = {}) {
+    const animar = Boolean(opts.animar);
+    if (animar) {
+      document.dispatchEvent(new CustomEvent("idioma-cambiando", { detail: I18N.lang }));
+    }
     document.documentElement.lang = I18N.lang;
     document.querySelectorAll("[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]").forEach(aplicarNodo);
     document.querySelectorAll(".btn-idioma").forEach((btn) => {
       btn.textContent = t("lang.btn");
       btn.setAttribute("aria-label", t("lang.aria"));
     });
-    document.dispatchEvent(new CustomEvent("idioma-cambiado", { detail: I18N.lang }));
+    document.dispatchEvent(new CustomEvent("idioma-cambiado", { detail: { lang: I18N.lang, animar } }));
   }
 
   function setLang(lang) {
     I18N.lang = lang === "en" ? "en" : "es";
     try { localStorage.setItem(LS, I18N.lang); } catch { /* ignore */ }
-    aplicar();
+    aplicar({ animar: true });
   }
 
   function toggle() {
@@ -980,10 +984,10 @@
   window.loc = loc;
 
   document.addEventListener("click", (e) => {
-    if (e.target.closest(".btn-idioma")) {
-      e.preventDefault();
-      toggle();
-    }
+    const btn = e.target.closest(".btn-idioma");
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
+    toggle();
   });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", aplicar);

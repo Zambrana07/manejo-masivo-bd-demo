@@ -2612,11 +2612,23 @@ $("comp-crear")?.addEventListener("click", async () => {
   }
 });
 
-document.addEventListener("idioma-cambiado", () => {
+let paginaIdioma = null;
+let idiomaAnimando = false;
+
+function reducidaMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function bloquearIdioma(si) {
+  document.querySelectorAll(".btn-idioma").forEach((btn) => {
+    btn.disabled = Boolean(si);
+    btn.setAttribute("aria-busy", si ? "true" : "false");
+  });
+}
+
+function refrescarTextosJs() {
   Object.values(drops).forEach((d) => d.repintar?.());
   if (catalogoFiltros.length) refrescarFiltro();
-  if (historialDatos.length || !$("historial")?.classList.contains("oculto")) pintarHistorial();
-  if ($("app") && !$("app").classList.contains("oculto")) cargarPendientes();
   if ($("menu-lugar") && window.__DEMO_MASIVO__) $("menu-lugar").textContent = t("menu.placeDemo");
   const badge = $("estado-servidor");
   if (badge && window.__DEMO_MASIVO__) badge.innerHTML = `<i></i>${t("ui.demoLocal")}`;
@@ -2635,4 +2647,65 @@ document.addEventListener("idioma-cambiado", () => {
   const miga = $("miga");
   const activo = document.querySelector(".item.activo .item-texto");
   if (miga && activo) miga.textContent = activo.textContent.trim();
+}
+
+document.addEventListener("idioma-cambiando", () => {
+  idiomaAnimando = true;
+  bloquearIdioma(true);
+  const login = $("login");
+  if (login && !login.classList.contains("oculto")) {
+    login.classList.add("idioma-espera");
+    login.querySelector(".vidrio")?.classList.remove("aparece");
+    paginaIdioma = null;
+    return;
+  }
+  const pagina = document.querySelector("main > .pagina:not(.oculto)");
+  paginaIdioma = pagina;
+  if (!pagina) return;
+  pagina.classList.add("oculto");
+  pagina.classList.remove("entra", "entra-split");
+  $("esqueleto")?.classList.remove("oculto");
+});
+
+document.addEventListener("idioma-cambiado", async (evento) => {
+  const animar = Boolean(evento.detail?.animar);
+  refrescarTextosJs();
+  const id = paginaIdioma?.id;
+  const tareas = [];
+  if ($("app") && !$("app").classList.contains("oculto")) {
+    if (id === "inicio" || !id) tareas.push(cargarPendientes());
+    if (id === "historial") tareas.push(cargarHistorial(false));
+    else if (historialDatos.length) pintarHistorial();
+    if (id === "compuestos") tareas.push(cargarParejas());
+  }
+  if (!animar) {
+    idiomaAnimando = false;
+    bloquearIdioma(false);
+    return;
+  }
+  const espera = reducidaMotion() ? 0 : 480;
+  await Promise.all([
+    Promise.all(tareas).catch(() => {}),
+    new Promise((listo) => setTimeout(listo, espera)),
+  ]);
+  $("esqueleto")?.classList.add("oculto");
+  const login = $("login");
+  if (login && !login.classList.contains("oculto")) {
+    login.classList.remove("idioma-espera");
+    const vidrio = login.querySelector(".vidrio");
+    if (vidrio) {
+      vidrio.classList.remove("aparece");
+      void vidrio.offsetWidth;
+      vidrio.classList.add("aparece");
+    }
+  }
+  const pagina = paginaIdioma;
+  if (pagina) {
+    pagina.classList.remove("oculto", "entra", "entra-split");
+    void pagina.offsetWidth;
+    pagina.classList.add("entra");
+  }
+  paginaIdioma = null;
+  idiomaAnimando = false;
+  bloquearIdioma(false);
 });

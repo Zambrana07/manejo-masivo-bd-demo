@@ -6,7 +6,7 @@
 <title>Manejo masivo de bases de datos · Demo</title>
 <link rel="icon" type="image/png" href="data:,">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="estilos.css?v=demo7">
+<link rel="stylesheet" href="estilos.css?v=demo9">
 </head>
 <body class="es-demo">
 <div id="demo-banner" class="demo-banner" role="status" data-i18n="banner">Modo demo — datos ficticios · no es el sistema real</div>
@@ -89,12 +89,14 @@
       </div>
     </nav>
     <main id="main">
-      <div id="esqueleto" class="esqueleto oculto">
+      <div id="esqueleto" class="esqueleto oculto" aria-hidden="true">
         <div class="hueso titulo"></div>
+        <div class="hueso linea"></div>
+        <div class="hueso linea corta"></div>
+        <div class="hueso bloque"></div>
         <div class="hueso linea"></div>
         <div class="hueso bloque"></div>
         <div class="hueso linea corta"></div>
-        <div class="hueso bloque"></div>
       </div>
 
       <section id="inicio" class="pagina">
@@ -595,8 +597,8 @@
     </div>
   </div>
 </div>
-<script src="i18n.js?v=demo8"></script>
+<script src="i18n.js?v=demo9"></script>
 <script src="mock.js?v=demo3"></script>
-<script src="app.js?v=demo8"></script>
+<script src="app.js?v=demo9"></script>
 </body>
 </html>
