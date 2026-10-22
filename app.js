@@ -379,8 +379,11 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
       }
     });
     // Si abrís un desplegable, cerrá el panel de filtros (y viceversa).
-    $("filtro-pop")?.classList.add("oculto");
-    $("filtro")?.classList.remove("abierto");
+    if (typeof ponerFiltro === "function") ponerFiltro(false);
+    else {
+      $("filtro-pop")?.classList.add("oculto");
+      $("filtro")?.classList.remove("abierto");
+    }
     const abrir = lista.classList.contains("oculto");
     lista.classList.toggle("oculto", !abrir);
     raiz.classList.toggle("abierto", abrir);
@@ -724,17 +727,37 @@ function refrescarFiltro() {
   });
 }
 
-$("filtro-btn").onclick = (evento) => {
-  evento.stopPropagation();
-  const abrir = $("filtro-pop").classList.contains("oculto");
-  if (abrir) {
+let filtroIgnorarCierre = false;
+function filtroMovil() {
+  return window.matchMedia("(max-width: 760px)").matches;
+}
+function ponerFiltro(abierto) {
+  const pop = $("filtro-pop");
+  const caja = $("filtro");
+  if (!pop || !caja) return;
+  if (abierto) {
     document.querySelectorAll(".drop.abierto").forEach((drop) => {
       drop.classList.remove("abierto");
       drop.querySelector(".drop-lista")?.classList.add("oculto");
     });
+    if (filtroMovil()) document.body.appendChild(pop);
+    else caja.appendChild(pop);
+    pop.classList.remove("oculto");
+    caja.classList.add("abierto");
+    document.body.classList.toggle("filtro-abierto", filtroMovil());
+    filtroIgnorarCierre = true;
+    setTimeout(() => { filtroIgnorarCierre = false; }, 450);
+  } else {
+    caja.appendChild(pop);
+    pop.classList.add("oculto");
+    caja.classList.remove("abierto");
+    document.body.classList.remove("filtro-abierto");
   }
-  $("filtro-pop").classList.toggle("oculto", !abrir);
-  $("filtro").classList.toggle("abierto", abrir);
+}
+$("filtro-btn").onclick = (evento) => {
+  evento.preventDefault();
+  evento.stopPropagation();
+  ponerFiltro($("filtro-pop").classList.contains("oculto"));
 };
 $("filtro-pop").onclick = (evento) => evento.stopPropagation();
 $("filtro-buscar").oninput = pintarOpciones;
@@ -753,13 +776,16 @@ $("filtro-limpiar").onclick = () => {
   refrescarFiltro();
 };
 $("filtro-listo").onclick = () => {
-  $("filtro-pop").classList.add("oculto");
-  $("filtro").classList.remove("abierto");
+  ponerFiltro(false);
   revisarCobertura(true);
 };
-document.addEventListener("click", () => {
-  $("filtro-pop").classList.add("oculto");
-  $("filtro").classList.remove("abierto");
+document.addEventListener("click", (evento) => {
+  if (filtroIgnorarCierre) return;
+  if (evento.target.closest("#filtro, #filtro-pop")) return;
+  ponerFiltro(false);
+});
+window.addEventListener("resize", () => {
+  if ($("filtro")?.classList.contains("abierto")) ponerFiltro(true);
 });
 
 /* índice por subfamilia: combinaciones de valores de los filtros y cuántos artículos tiene cada una */
