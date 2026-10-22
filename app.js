@@ -2649,31 +2649,27 @@ function refrescarTextosJs() {
   if (miga && activo) miga.textContent = activo.textContent.trim();
 }
 
+function mostrarEntrada(pagina) {
+  if (!pagina) return;
+  pagina.classList.remove("oculto", "entra", "entra-split");
+  void pagina.offsetWidth;
+  pagina.classList.add("entra");
+}
+
 document.addEventListener("idioma-cambiando", () => {
   idiomaAnimando = true;
   bloquearIdioma(true);
-  const login = $("login");
-  if (login && !login.classList.contains("oculto")) {
-    login.classList.add("idioma-espera");
-    login.querySelector(".vidrio")?.classList.remove("aparece");
-    paginaIdioma = null;
-    return;
-  }
-  const pagina = document.querySelector("main > .pagina:not(.oculto)");
-  paginaIdioma = pagina;
-  if (!pagina) return;
-  pagina.classList.add("oculto");
-  pagina.classList.remove("entra", "entra-split");
-  $("esqueleto")?.classList.remove("oculto");
+  paginaIdioma = document.querySelector("main > .pagina:not(.oculto)");
 });
 
 document.addEventListener("idioma-cambiado", async (evento) => {
   const animar = Boolean(evento.detail?.animar);
   refrescarTextosJs();
-  const id = paginaIdioma?.id;
+  const pagina = paginaIdioma || document.querySelector("main > .pagina:not(.oculto)");
+  const id = pagina?.id;
   const tareas = [];
   if ($("app") && !$("app").classList.contains("oculto")) {
-    if (id === "inicio" || !id) tareas.push(cargarPendientes());
+    if (id === "inicio") tareas.push(cargarPendientes());
     if (id === "historial") tareas.push(cargarHistorial(false));
     else if (historialDatos.length) pintarHistorial();
     if (id === "compuestos") tareas.push(cargarParejas());
@@ -2683,12 +2679,23 @@ document.addEventListener("idioma-cambiado", async (evento) => {
     bloquearIdioma(false);
     return;
   }
-  const espera = reducidaMotion() ? 0 : 480;
-  await Promise.all([
-    Promise.all(tareas).catch(() => {}),
-    new Promise((listo) => setTimeout(listo, espera)),
-  ]);
+
+  const carga = Promise.all(tareas).catch(() => {});
+  let usoSkeleton = false;
+  let timerSkeleton = null;
+  if (!reducidaMotion() && tareas.length) {
+    timerSkeleton = setTimeout(() => {
+      if (!pagina || pagina.classList.contains("oculto")) return;
+      usoSkeleton = true;
+      pagina.classList.add("oculto");
+      pagina.classList.remove("entra", "entra-split");
+      $("esqueleto")?.classList.remove("oculto");
+    }, 380);
+  }
+  await carga;
+  if (timerSkeleton) clearTimeout(timerSkeleton);
   $("esqueleto")?.classList.add("oculto");
+
   const login = $("login");
   if (login && !login.classList.contains("oculto")) {
     login.classList.remove("idioma-espera");
@@ -2699,12 +2706,7 @@ document.addEventListener("idioma-cambiado", async (evento) => {
       vidrio.classList.add("aparece");
     }
   }
-  const pagina = paginaIdioma;
-  if (pagina) {
-    pagina.classList.remove("oculto", "entra", "entra-split");
-    void pagina.offsetWidth;
-    pagina.classList.add("entra");
-  }
+  if (pagina) mostrarEntrada(pagina);
   paginaIdioma = null;
   idiomaAnimando = false;
   bloquearIdioma(false);
