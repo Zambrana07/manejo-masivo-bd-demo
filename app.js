@@ -1193,6 +1193,7 @@ function pedidoActual() {
 }
 
 let ultimoCosto = null;
+let ultimaPrevia = null;
 $("previa").onclick = async () => {
   if (!subsElegidas().length) {
     $("estado").textContent = t("ui.needSub");
@@ -1202,16 +1203,22 @@ $("previa").onclick = async () => {
     revisarCobertura(true);
     return;
   }
-  $("estado").textContent = "Armando la vista previa…";
+  $("estado").textContent = t("prev.building");
   const respuesta = await fetch("/api/vista-previa", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: pedidoActual(),
   });
   const datos = await respuesta.json();
   if (!respuesta.ok) {
-    $("estado").textContent = datos.mensaje || "No se pudo armar la vista previa.";
+    $("estado").textContent = datos.mensaje || t("prev.fail");
     return;
   }
   $("estado").textContent = "";
+  pintarVistaPrevia(datos);
+};
+
+function pintarVistaPrevia(datos) {
+  if (!datos) return;
+  ultimaPrevia = datos;
   const filas = $("previa-filas");
   filas.innerHTML = "";
   const soloLista = Array.isArray(datos.columnas);
@@ -1219,24 +1226,25 @@ $("previa").onclick = async () => {
   cabeza.innerHTML = "";
   ["SKU", t("h.item"), t("d.sub"), ...(soloLista ? datos.columnas.map(L) : [t("h.field"), t("h.before"), t("h.after")])]
     .forEach((titulo) => cabeza.append(crear("th", "", titulo)));
-  $("previa-titulo").textContent = soloLista ? "Artículos por cambiar" : "Vista previa del cambio";
+  $("previa-titulo").textContent = soloLista ? t("prev.listTitle") : t("prev.changeTitle");
   $("previa-aplicar").classList.toggle("oculto", soloLista);
+  const fechaTxt = datos.fecha
+    ? new Date(datos.fecha).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })
+    : "";
   if (soloLista) {
     datos.cambian.forEach((a) => {
       const fila = crear("tr");
       fila.append(crear("td", "", a.sku || "—"), crear("td", "", LLargo(a.nombre)), crear("td", "", L(a.subfamilia)));
-      a.valores.forEach((v) => fila.append(crear("td", "", v || "—")));
+      a.valores.forEach((v) => fila.append(crear("td", "", v ? L(v) : "—")));
       filas.append(fila);
     });
     const total = datos.cambian.length;
     $("previa-resumen").innerHTML = total
-      ? `Hay <b>${total.toLocaleString(loc())}</b> artículos con estas subfamilias y filtros. Todavía no elegiste ningún cambio; cuando marques uno, acá vas a ver el antes y el después.`
-      : "Ningún artículo coincide con estas subfamilias y filtros.";
+      ? t("prev.listSum", { n: `<b>${total.toLocaleString(loc())}</b>` })
+      : t("prev.listNone");
     ultimoCosto = null;
     $("previa-costo").textContent = "";
-    $("previa-nota").textContent = datos.fecha
-      ? `Datos del catálogo de ${new Date(datos.fecha).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas).`
-      : "Todavía no hay datos guardados del catálogo. Usá \"Actualizar datos\" en el filtro.";
+    $("previa-nota").textContent = fechaTxt ? t("prev.note", { d: fechaTxt }) : t("prev.noteEmpty");
     $("previa-modal").classList.remove("oculto");
     return;
   }
@@ -1252,16 +1260,14 @@ $("previa").onclick = async () => {
   });
   const n = datos.cambian.length;
   $("previa-resumen").innerHTML = n
-    ? `Se cambiarían <b>${n}</b> artículos.${datos.iguales ? ` Otros ${datos.iguales} ya tienen esos valores y no se tocan.` : ""}`
-    : `Ningún artículo cambiaría.${datos.iguales ? ` Los ${datos.iguales} que coinciden ya tienen esos valores.` : ""}`;
+    ? t("prev.changeSum", { n: `<b>${n}</b>` }) + (datos.iguales ? t("prev.changeSame", { n: datos.iguales }) : "")
+    : t("prev.changeNone") + (datos.iguales ? t("prev.changeNoneSame", { n: datos.iguales }) : "");
   ultimoCosto = datos.costo;
   $("previa-costo").textContent = textoCosto(datos.costo);
-  $("previa-nota").textContent = datos.fecha
-    ? `Calculado con los datos del catálogo de ${new Date(datos.fecha).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas). Al aplicar, se vuelve a leer el catálogo para escribir sobre los valores más recientes.`
-    : "Todavía no hay datos guardados del catálogo. Usá \"Actualizar datos\" en el filtro.";
+  $("previa-nota").textContent = fechaTxt ? t("prev.noteCalc", { d: fechaTxt }) : t("prev.noteEmpty");
   $("previa-aplicar").disabled = n === 0;
   $("previa-modal").classList.remove("oculto");
-};
+}
 $("previa-cerrar").onclick = () => $("previa-modal").classList.add("oculto");
 $("previa-aplicar").onclick = () => {
   $("previa-modal").classList.add("oculto");
@@ -2370,16 +2376,16 @@ function pintarPiezas(piezas) {
   caja.append(crear("h3", "opciones-titulo", t("js.pieces")));
   const tabla = crear("table", "comp-piezas");
   const cabeza = crear("tr");
-  ["Rol", "SKU", "Nombre", "Cant.", "Precio", "Costo", "Stock", ""].forEach((txt) => cabeza.append(crear("th", "", txt)));
+  [t("tbl.role"), "SKU", t("tbl.name"), t("tbl.qty"), t("tbl.price"), t("tbl.cost"), t("tbl.stock"), ""].forEach((txt) => cabeza.append(crear("th", "", txt)));
   const thead = crear("thead");
   thead.append(cabeza);
   tabla.append(thead);
   const cuerpo = crear("tbody");
   piezas.forEach((p, i) => {
     const fila = crear("tr");
-    fila.append(crear("td", "comp-rol", p.rol || "pieza"));
+    fila.append(crear("td", "comp-rol", L(p.rol || "pieza")));
     fila.append(crear("td", "", p.sku || "—"));
-    fila.append(crear("td", "", p.nombre || "—"));
+    fila.append(crear("td", "", LLargo(p.nombre || "—")));
     const cant = document.createElement("input");
     cant.type = "number";
     cant.min = "1";
@@ -2404,7 +2410,7 @@ function pintarPiezas(piezas) {
     fila.append(crear("td", "", String(p.stock ?? "—")));
     const sacar = crear("button", "comp-sacar", "×");
     sacar.type = "button";
-    sacar.setAttribute("aria-label", "Quitar");
+    sacar.setAttribute("aria-label", t("ui.unmark"));
     sacar.onclick = () => {
       kitActual.piezas.splice(i, 1);
       if (kitActual.piezas.length < 2) {
@@ -2454,15 +2460,15 @@ function pintarPreviaKit(kit) {
     : t("js.need2");
   const cabeza = $("comp-previa-cabeza");
   cabeza.innerHTML = "";
-  ["", "SKU", "Nombre", "Cant.", "Precio", "Costo", "Stock"].forEach((txt) => cabeza.append(crear("th", "", txt)));
+  [t("tbl.role"), "SKU", t("tbl.name"), t("tbl.qty"), t("tbl.price"), t("tbl.cost"), t("tbl.stock")].forEach((txt) => cabeza.append(crear("th", "", txt)));
   const filas = $("comp-previa-filas");
   filas.innerHTML = "";
   piezas.forEach((p) => {
     const fila = crear("tr");
     fila.append(
-      crear("td", "", p.rol || "pieza"),
+      crear("td", "", L(p.rol || "pieza")),
       crear("td", "", p.sku || "—"),
-      crear("td", "", p.nombre || "—"),
+      crear("td", "", LLargo(p.nombre || "—")),
       crear("td", "", String(p.cantidad || 1)),
       crear("td", "", colones(p.precio)),
       crear("td", "", colones(p.costo)),
@@ -2625,6 +2631,7 @@ document.addEventListener("idioma-cambiado", () => {
       pintarPreviaKit(kitActual);
     }
   }
+  if (ultimaPrevia && !$("previa-modal")?.classList.contains("oculto")) pintarVistaPrevia(ultimaPrevia);
   const miga = $("miga");
   const activo = document.querySelector(".item.activo .item-texto");
   if (miga && activo) miga.textContent = activo.textContent.trim();
