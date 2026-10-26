@@ -28,11 +28,17 @@ function fibras(idLienzo, velocidad, visible) {
       });
     }
   }
+  let vivo = true;
   function pintar() {
     if (!visible()) {
-      requestAnimationFrame(pintar);
+      vivo = false;
+      if (lienzo.width > 2) {
+        lienzo.width = 1;
+        lienzo.height = 1;
+      }
       return;
     }
+    vivo = true;
     if (lienzo.width !== lienzo.offsetWidth || lienzo.height !== lienzo.offsetHeight) medir();
     ctx.fillStyle = `rgba(14, 14, 16, ${Math.min(0.18, 0.06 + 0.12 * velocidad)})`;
     ctx.fillRect(0, 0, ancho, alto);
@@ -52,9 +58,17 @@ function fibras(idLienzo, velocidad, visible) {
     });
     requestAnimationFrame(pintar);
   }
+  function arrancar() {
+    if (vivo || !visible()) return;
+    medir();
+    crear();
+    requestAnimationFrame(pintar);
+  }
   medir();
   crear();
-  window.addEventListener("resize", () => { medir(); crear(); });
+  window.addEventListener("resize", () => { if (visible()) { medir(); crear(); } });
+  document.addEventListener("visibilitychange", arrancar);
+  new MutationObserver(arrancar).observe($("login"), { attributes: true, attributeFilter: ["class"] });
   pintar();
 }
 fibras("fibras", 0.7, () => !$("login").classList.contains("oculto"));
@@ -114,11 +128,20 @@ fibras("fibras", 0.7, () => !$("login").classList.contains("oculto"));
   });
   document.addEventListener("pointerleave", () => { centro.meta.x = 50; centro.meta.y = 50; });
 
+  let vivo = true;
   function pintar(ahora) {
+    if (!visible()) {
+      vivo = false;
+      if (lienzo.width > 2) {
+        lienzo.width = 1;
+        lienzo.height = 1;
+      }
+      return;
+    }
+    vivo = true;
     requestAnimationFrame(pintar);
     const dt = Math.min(100, ahora - anterior);
     anterior = ahora;
-    if (!visible()) return;
     const suave = 1 - Math.exp(-dt / 4000);
     centro.x += (centro.meta.x - centro.x) * suave;
     centro.y += (centro.meta.y - centro.y) * suave;
@@ -151,8 +174,15 @@ fibras("fibras", 0.7, () => !$("login").classList.contains("oculto"));
     }
     ctx.globalAlpha = 1;
   }
+  function arrancar() {
+    if (vivo || !visible()) return;
+    medir();
+    requestAnimationFrame(pintar);
+  }
   medir();
-  window.addEventListener("resize", medir);
+  window.addEventListener("resize", () => { if (visible()) medir(); });
+  document.addEventListener("visibilitychange", arrancar);
+  new MutationObserver(arrancar).observe($("app"), { attributes: true, attributeFilter: ["class"] });
   requestAnimationFrame(pintar);
 })();
 
@@ -215,14 +245,6 @@ async function mostrarIntro(nombre) {
   }
   $("vitrina").addEventListener("mouseenter", () => { pausado = true; clearTimeout(reloj); });
   $("vitrina").addEventListener("mouseleave", () => { pausado = false; programar(); });
-  let toqueX = 0;
-  $("vitrina").addEventListener("touchstart", (e) => { toqueX = e.changedTouches[0].clientX; pausado = true; }, { passive: true });
-  $("vitrina").addEventListener("touchend", (e) => {
-    const dx = e.changedTouches[0].clientX - toqueX;
-    if (Math.abs(dx) > 36) mostrar(dx < 0 ? (actual + 1) % total : (actual - 1 + total) % total);
-    else programar();
-    pausado = false;
-  }, { passive: true });
   mostrar(0);
 })();
 
@@ -264,7 +286,6 @@ function normal(texto) {
 /* desplegable. opciones.buscar agrega el buscador; opciones.todas pone TODAS de primera */
 function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
   const raiz = $(id);
-  if (!raiz) return;
   raiz.innerHTML = "";
   const todas = extra.todas ? ["TODAS", ...opciones] : [...opciones];
   const boton = document.createElement("button");
@@ -279,7 +300,7 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
     const caja = document.createElement("div");
     caja.className = "buscador";
     buscar = document.createElement("input");
-    buscar.placeholder = t("bulk.search");
+    buscar.placeholder = "Buscar…";
     buscar.onclick = (evento) => evento.stopPropagation();
     buscar.oninput = () => llenar(buscar.value);
     caja.append(buscar);
@@ -301,16 +322,7 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
       estado.elegidas = opciones.filter((o) => marcadas.has(o));
       estado.valor = textoMultiple();
     }
-    let visible = L(estado.valor);
-    if (extra.multiple) {
-      const lista = opciones.filter((o) => marcadas.has(o));
-      if (!lista.length) visible = L(inicial);
-      else if (lista.length === opciones.length) visible = L("TODAS");
-      else if (lista.length === 1) visible = L(lista[0]);
-      else if (lista.length === 2) visible = `${L(lista[0])} ${t("ui.and")} ${L(lista[1])}`;
-      else visible = t("ui.nSubs", { n: lista.length });
-    }
-    boton.innerHTML = `<span>${visible}</span><b>▼</b>`;
+    boton.innerHTML = `<span>${estado.valor}</span><b>▼</b>`;
     raiz.classList.toggle("cambiado", inicial === "No cambiar" && estado.valor !== inicial);
   };
   const cerrar = () => {
@@ -320,18 +332,18 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
   function llenar(filtro) {
     cuerpo.innerHTML = "";
     const aguja = normal(filtro || "");
-    const visibles = todas.filter((texto) => texto === "TODAS" || !aguja || normal(texto).includes(aguja) || normal(L(texto)).includes(aguja));
+    const visibles = todas.filter((texto) => texto === "TODAS" || !aguja || normal(texto).includes(aguja));
     if (!visibles.length) {
       const nada = document.createElement("p");
       nada.className = "vacio";
-      nada.textContent = t("ui.nomatch");
+      nada.textContent = "No hay coincidencias.";
       cuerpo.append(nada);
       return;
     }
     visibles.forEach((texto) => {
       const item = document.createElement("button");
       item.type = "button";
-      item.textContent = L(texto);
+      item.textContent = texto;
       if (texto === "TODAS") item.className = "todas";
       if (extra.multiple) {
         const todasMarcadas = () => opciones.every((o) => marcadas.has(o));
@@ -379,19 +391,17 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
       }
     });
     // Si abrís un desplegable, cerrá el panel de filtros (y viceversa).
-    if (typeof ponerFiltro === "function") ponerFiltro(false);
-    else {
-      $("filtro-pop")?.classList.add("oculto");
-      $("filtro")?.classList.remove("abierto");
-    }
+    $("filtro-pop")?.classList.add("oculto");
+    $("filtro")?.classList.remove("abierto");
     const abrir = lista.classList.contains("oculto");
     lista.classList.toggle("oculto", !abrir);
     raiz.classList.toggle("abierto", abrir);
     raiz.classList.remove("arriba");
     if (abrir) {
+      const alto = Math.max(lista.offsetHeight, extra.arriba ? 280 : 0);
       const abajo = window.innerHeight - boton.getBoundingClientRect().bottom;
       const arriba = boton.getBoundingClientRect().top - 80;
-      if (lista.offsetHeight + 12 > abajo && arriba > abajo) raiz.classList.add("arriba");
+      if (extra.arriba || (alto + 12 > abajo && arriba > abajo)) raiz.classList.add("arriba");
     }
     if (abrir && buscar) {
       buscar.value = "";
@@ -422,12 +432,6 @@ function armarDrop(id, opciones, inicial, alElegir, extra = {}) {
     (lista || []).forEach((o) => { if (opciones.includes(o)) marcadas.add(o); });
     pintar();
     llenar(buscar?.value || "");
-    if (alElegir) alElegir(estado.valor);
-  };
-  estado.repintar = () => {
-    if (buscar) buscar.placeholder = t("bulk.search");
-    pintar();
-    llenar(buscar?.value || "");
   };
   drops[id] = estado;
 }
@@ -437,7 +441,7 @@ $("quitar-cambios").onclick = () => {
     $(id).value = "";
     $(id).parentElement.classList.remove("cambiado");
   });
-  $("estado").textContent = t("ui.reset");
+  $("estado").textContent = "Todos los campos quedaron en No cambiar.";
 };
 
 ["pct", "estimado"].forEach((id) => {
@@ -458,11 +462,12 @@ $("ver").onclick = () => {
   $("ver").textContent = visible ? "Ver" : "Ocultar";
 };
 
-async function iniciarSesion(cuerpo) {
+$("forma").onsubmit = async (evento) => {
+  evento.preventDefault();
   const respuesta = await fetch("/api/entrar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cuerpo),
+    body: JSON.stringify({ usuario: $("usuario").value, contrasena: $("contra").value }),
   });
   const datos = await respuesta.json();
   if (!respuesta.ok) {
@@ -473,16 +478,6 @@ async function iniciarSesion(cuerpo) {
   $("contra").value = "";
   sessionStorage.removeItem("intro-vista");
   entrarApp();
-}
-
-$("forma").onsubmit = async (evento) => {
-  evento.preventDefault();
-  await iniciarSesion({ usuario: $("usuario").value, contrasena: $("contra").value });
-};
-
-$("entrar-invitado").onclick = async () => {
-  $("aviso").textContent = "";
-  await iniciarSesion({ invitado: true });
 };
 
 $("salir").onclick = async () => {
@@ -498,26 +493,16 @@ async function entrarApp() {
   const datos = await respuesta.json();
   listo = true;
   const nombre = datos.usuario || "Invitado";
-  const iniciales = nombre.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   $("bienvenida-nombre").textContent = nombre;
   $("menu-nombre").textContent = nombre;
-  $("menu-avatar").textContent = iniciales;
-  const avatarBarra = $("avatar-barra");
-  if (avatarBarra) {
-    avatarBarra.textContent = iniciales;
-    avatarBarra.title = nombre;
-  }
-  $("menu-lugar").textContent = window.__DEMO_MASIVO__ ? t("menu.placeDemo") : (datos.remoto ? "Acceso remoto" : t("menu.place"));
+  $("menu-avatar").textContent = nombre.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+  $("menu-lugar").textContent = datos.remoto ? "Acceso remoto" : "Solo esta computadora";
   const badge = $("estado-servidor");
   if (badge) {
-    if (window.__DEMO_MASIVO__) {
-      badge.innerHTML = `<i></i>${t("ui.demoLocal")}`;
-    } else {
-      const online = datos.en_servidor || datos.remoto;
-      badge.innerHTML = online
-        ? `<i></i>Servidor online`
-        : `<i></i>Servidor local en línea`;
-    }
+    const online = datos.en_servidor || datos.remoto;
+    badge.innerHTML = online
+      ? `<i></i>Servidor online`
+      : `<i></i>Servidor local en línea`;
   }
   $("bienvenida-titulo").style.opacity = "0";
   const intro = mostrarIntro(nombre);
@@ -541,7 +526,7 @@ async function entrarApp() {
   armarFiltro(datos.filtros);
   cargarIndice();
   armarDrop("drop-seccion", ["No cambiar", "Sección A"], "No cambiar");
-  armarDrop("drop-estante", ["No cambiar", ...(datos.estantes || [])], "No cambiar");
+  armarDrop("drop-estante", ["No cambiar", "Estante 9 si está vacío"], "No cambiar");
   armarDrop("drop-familia", datos.subfamilias, "Elegí una subfamilia", revisarVigilante, { buscar: true, todas: true });
   armarDrop("drop-tiempo", ["30 min", "60 min"], "Elegí el tiempo", revisarVigilante);
   armarDrop("drop-origen", ORIGENES.map(([, nombre]) => nombre), ORIGENES[0][1], () => pintarHistorial(true));
@@ -550,6 +535,7 @@ async function entrarApp() {
   revisarLinea();
   cargarPendientes();
   empezarVigilanciaTrabajo();
+  iniciarBucleCxc();
   mirarVigilante();
   if (window.matchMedia("(max-width: 760px)").matches) {
     $("menu").classList.add("cerrado");
@@ -654,7 +640,7 @@ function pintarCategorias() {
   catalogoFiltros.forEach((f) => {
     const li = document.createElement("li");
     li.className = f.clave === categoria ? "activo" : "";
-    li.textContent = L(f.titulo);
+    li.textContent = f.titulo;
     const n = filtros[f.clave]?.size || 0;
     if (n) {
       const em = document.createElement("em");
@@ -678,7 +664,7 @@ function pintarOpciones() {
   if (!actual) return;
   const elegidos = filtros[actual.clave] || new Set();
   const aguja = normal($("filtro-buscar").value);
-  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja) || normal(L(o)).includes(aguja));
+  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja));
   visibles.forEach((opcion) => {
     const label = document.createElement("label");
     label.className = "filtro-op";
@@ -691,7 +677,7 @@ function pintarOpciones() {
       if (set.size) filtros[actual.clave] = set; else delete filtros[actual.clave];
       refrescarFiltro();
     };
-    label.append(check, document.createElement("span"), document.createTextNode(L(opcion)));
+    label.append(check, document.createElement("span"), document.createTextNode(opcion));
     caja.append(label);
   });
   $("filtro-todo").checked = visibles.length > 0 && visibles.every((o) => elegidos.has(o));
@@ -711,11 +697,11 @@ function refrescarFiltro() {
     (filtros[f.clave] ? [...filtros[f.clave]] : []).forEach((opcion) => {
       const chip = document.createElement("span");
       chip.className = "chip";
-      chip.textContent = `${L(f.titulo)}: ${L(opcion)}`;
+      chip.textContent = `${f.titulo}: ${opcion}`;
       const quitar = document.createElement("button");
       quitar.type = "button";
       quitar.textContent = "×";
-      quitar.setAttribute("aria-label", t("filtro.quitar"));
+      quitar.setAttribute("aria-label", "Quitar filtro");
       quitar.onclick = () => {
         filtros[f.clave].delete(opcion);
         if (!filtros[f.clave].size) delete filtros[f.clave];
@@ -727,37 +713,17 @@ function refrescarFiltro() {
   });
 }
 
-let filtroIgnorarCierre = false;
-function filtroMovil() {
-  return window.matchMedia("(max-width: 760px)").matches;
-}
-function ponerFiltro(abierto) {
-  const pop = $("filtro-pop");
-  const caja = $("filtro");
-  if (!pop || !caja) return;
-  if (abierto) {
+$("filtro-btn").onclick = (evento) => {
+  evento.stopPropagation();
+  const abrir = $("filtro-pop").classList.contains("oculto");
+  if (abrir) {
     document.querySelectorAll(".drop.abierto").forEach((drop) => {
       drop.classList.remove("abierto");
       drop.querySelector(".drop-lista")?.classList.add("oculto");
     });
-    if (filtroMovil()) document.body.appendChild(pop);
-    else caja.appendChild(pop);
-    pop.classList.remove("oculto");
-    caja.classList.add("abierto");
-    document.body.classList.toggle("filtro-abierto", filtroMovil());
-    filtroIgnorarCierre = true;
-    setTimeout(() => { filtroIgnorarCierre = false; }, 450);
-  } else {
-    caja.appendChild(pop);
-    pop.classList.add("oculto");
-    caja.classList.remove("abierto");
-    document.body.classList.remove("filtro-abierto");
   }
-}
-$("filtro-btn").onclick = (evento) => {
-  evento.preventDefault();
-  evento.stopPropagation();
-  ponerFiltro($("filtro-pop").classList.contains("oculto"));
+  $("filtro-pop").classList.toggle("oculto", !abrir);
+  $("filtro").classList.toggle("abierto", abrir);
 };
 $("filtro-pop").onclick = (evento) => evento.stopPropagation();
 $("filtro-buscar").oninput = pintarOpciones;
@@ -765,7 +731,7 @@ $("filtro-todo").onchange = () => {
   const actual = catalogoFiltros.find((f) => f.clave === categoria);
   if (!actual) return;
   const aguja = normal($("filtro-buscar").value);
-  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja) || normal(L(o)).includes(aguja));
+  const visibles = actual.opciones.filter((o) => !aguja || normal(o).includes(aguja));
   const set = filtros[actual.clave] || new Set();
   visibles.forEach((o) => { if ($("filtro-todo").checked) set.add(o); else set.delete(o); });
   if (set.size) filtros[actual.clave] = set; else delete filtros[actual.clave];
@@ -776,16 +742,13 @@ $("filtro-limpiar").onclick = () => {
   refrescarFiltro();
 };
 $("filtro-listo").onclick = () => {
-  ponerFiltro(false);
+  $("filtro-pop").classList.add("oculto");
+  $("filtro").classList.remove("abierto");
   revisarCobertura(true);
 };
-document.addEventListener("click", (evento) => {
-  if (filtroIgnorarCierre) return;
-  if (evento.target.closest("#filtro, #filtro-pop")) return;
-  ponerFiltro(false);
-});
-window.addEventListener("resize", () => {
-  if ($("filtro")?.classList.contains("abierto")) ponerFiltro(true);
+document.addEventListener("click", () => {
+  $("filtro-pop").classList.add("oculto");
+  $("filtro").classList.remove("abierto");
 });
 
 /* índice por subfamilia: combinaciones de valores de los filtros y cuántos artículos tiene cada una */
@@ -794,17 +757,17 @@ let reintento = null;
 let indiceErrorVisto = "";
 let indiceEstabaConstruyendo = false;
 
-function textoErrorApi(mensaje) {
+function textoErrorZoho(mensaje) {
   const texto = String(mensaje || "").trim();
   const bajo = texto.toLowerCase();
   if (bajo.includes("6018") || bajo.includes("deshabilitada") || bajo.includes("disabled")) {
     return (
-      "La cuenta de la API está deshabilitada. " +
-      "Pedile a un administrador que la reactive. " +
+      "La cuenta de Zoho está deshabilitada. " +
+      "Pedile a un administrador de Zoho que la reactive. " +
       "Mientras tanto la herramienta no puede leer ni escribir datos."
     );
   }
-  return texto || "No se pudo completar la operación con la API.";
+  return texto || "No se pudo completar la operación con Zoho.";
 }
 
 function textoAvanceIndice(datos = indice) {
@@ -828,18 +791,18 @@ function pintarIndiceCuota(datos = indice) {
     } else if (hecho > 0) {
       caja.textContent = `Paso ${hecho}… · la cuota se actualiza al terminar.`;
     } else {
-      caja.textContent = "Preparando lectura… consultando la API.";
+      caja.textContent = "Preparando lectura… consultando Zoho.";
     }
     return;
   }
   if (datos.consumo != null) {
-    partes.push(`Última lectura: ${Number(datos.consumo).toLocaleString(loc())} APIs`);
+    partes.push(`Última lectura: ${Number(datos.consumo).toLocaleString("es-CR")} APIs`);
   } else if (datos.costo_estimado != null) {
-    partes.push(`Próxima lectura ≈ ${Number(datos.costo_estimado).toLocaleString(loc())} APIs`);
+    partes.push(`Próxima lectura ≈ ${Number(datos.costo_estimado).toLocaleString("es-CR")} APIs`);
   }
   if (datos.restan != null) {
-    const lim = datos.limite != null ? ` de ${Number(datos.limite).toLocaleString(loc())}` : "";
-    partes.push(`Quedan ${Number(datos.restan).toLocaleString(loc())}${lim} hoy`);
+    const lim = datos.limite != null ? ` de ${Number(datos.limite).toLocaleString("es-CR")}` : "";
+    partes.push(`Quedan ${Number(datos.restan).toLocaleString("es-CR")}${lim} hoy`);
   }
   caja.textContent = partes.join(" · ");
 }
@@ -852,25 +815,67 @@ function avisarSiErrorIndice(datos) {
   }
   if (datos.construyendo || error === indiceErrorVisto) return;
   indiceErrorVisto = error;
-  avisar("No se pudieron actualizar los datos", textoErrorApi(error), [], { error: true });
+  avisar("No se pudieron actualizar los datos", textoErrorZoho(error), [], { error: true });
+}
+
+function podarFiltros(lista) {
+  const porClave = Object.fromEntries((lista || []).map((f) => [f.clave, new Set(f.opciones)]));
+  Object.keys(filtros).forEach((clave) => {
+    const validos = porClave[clave];
+    if (!validos) {
+      delete filtros[clave];
+      return;
+    }
+    [...filtros[clave]].forEach((opcion) => {
+      if (!validos.has(opcion)) filtros[clave].delete(opcion);
+    });
+    if (!filtros[clave].size) delete filtros[clave];
+  });
+}
+
+async function refrescarOpcionesVivas() {
+  const cat = await (await fetch("/api/catalogo")).json();
+  podarFiltros(cat.filtros);
+  armarFiltro(cat.filtros);
+  const unidadActual = drops["drop-unidad"]?.valor || "No cambiar";
+  armarDrop("drop-unidad", ["No cambiar", ...(cat.unidades || [])], "No cambiar");
+  if (unidadActual !== "No cambiar" && (cat.unidades || []).includes(unidadActual)) {
+    drops["drop-unidad"].elegir(unidadActual);
+  }
+  refrescarFiltro();
+  return cat;
 }
 
 async function cargarIndice() {
   const respuesta = await fetch("/api/indice");
   if (!respuesta.ok) return;
   const antes = Object.keys(indice.subfamilias || {}).length;
+  const clavesAntes = (indice.claves || []).join();
   indice = await respuesta.json();
   const ahora = Object.keys(indice.subfamilias || {}).length;
+  const termino = indiceEstabaConstruyendo && !indice.construyendo;
   const fecha = indice.fecha ? new Date(indice.fecha) : null;
   $("indice-fecha").textContent = indice.construyendo
     ? textoAvanceIndice(indice)
-    : fecha ? `Datos de ${fecha.toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })}` : "Sin datos todavía";
+    : fecha ? `Datos de ${fecha.toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })}` : "Sin datos todavía";
   pintarIndiceCuota(indice);
   $("indice-actualizar").disabled = indice.construyendo;
-  if (indiceEstabaConstruyendo && !indice.construyendo) avisarSiErrorIndice(indice);
+  if (termino) avisarSiErrorIndice(indice);
   else if (indice.error && !indice.construyendo) avisarSiErrorIndice(indice);
   indiceEstabaConstruyendo = Boolean(indice.construyendo);
-  if (ahora && ahora !== antes && listo) {
+  if (listo && (termino || (indice.claves || []).join() !== clavesAntes)) {
+    const cat = await refrescarOpcionesVivas();
+    if (ahora && ahora !== antes && cat.subfamilias?.length) {
+      armarDrop("drop-sub", cat.subfamilias, "Elegí una o varias subfamilias", () => {
+        const panel = $("opciones");
+        if (panel.classList.contains("oculto")) {
+          panel.classList.remove("oculto");
+          panel.classList.add("aparece");
+        }
+        revisarCobertura(false);
+      }, { buscar: true, todas: true, multiple: true });
+    }
+  } else if (ahora && ahora !== antes && listo) {
     const cat = await (await fetch("/api/catalogo")).json();
     if (cat.subfamilias?.length) {
       armarDrop("drop-sub", cat.subfamilias, "Elegí una o varias subfamilias", () => {
@@ -896,25 +901,26 @@ $("indice-actualizar").onclick = async () => {
   try {
     const cuota = await (await fetch("/api/cuota")).json();
     if (!cuota.ok) {
-      avisar("No se puede actualizar ahora", textoErrorApi(cuota.mensaje), [], { error: true });
+      avisar("No se puede actualizar ahora", textoErrorZoho(cuota.mensaje), [], { error: true });
       return;
     }
     restan = cuota.restan;
     limite = cuota.limite;
   } catch {
-    avisar("No se puede actualizar ahora", "No se pudo consultar la API. Revisá la conexión e intentá de nuevo.", [], { error: true });
+    avisar("No se puede actualizar ahora", "No se pudo consultar Zoho. Revisá la conexión e intentá de nuevo.", [], { error: true });
     return;
   }
-  const n = estimado != null ? Number(estimado).toLocaleString(loc()) : "847 291";
+  const n = estimado != null ? Number(estimado).toLocaleString("es-CR") : "unas 60–70";
   const cuotaTxt = restan != null
-    ? `Cupo demo: quedan ${Number(restan).toLocaleString(loc())}${limite != null ? ` de ${Number(limite).toLocaleString(loc())}` : ""} llamadas.`
+    ? `Ahora quedan ${Number(restan).toLocaleString("es-CR")}${limite != null ? ` de ${Number(limite).toLocaleString("es-CR")}` : ""} llamadas hoy.`
     : "No se pudo leer la cuota en este momento.";
   const ok = await confirmarAviso(
-    "Actualizar datos del catálogo",
-    `Esto vuelve a leer todo el catálogo. Costo estimado (fórmula demo irreal): ≈ ${n} llamadas a la API (páginas×8 821 + overhead 12 840). ${cuotaTxt}`,
+    "Actualizar datos de Zoho",
+    `Esto vuelve a leer TODO el catálogo de Zoho: activos, inactivos y los que no tienen subfamilia. Va a consumir aproximadamente ${n} llamadas a la API (1 por página de 200 artículos). ${cuotaTxt}`,
     [
-      "El número es ilustrativo: muestra que la app puede estimar el gasto de API antes de ejecutar.",
-      "No escribe cambios en los artículos; solo lee (simulado).",
+      "Sirve para refrescar filtros, conteos y vista previa.",
+      "Las opciones que ya no existen (por ejemplo una unidad que se eliminó) salen del filtro.",
+      "No escribe cambios en los artículos; solo lee.",
     ],
   );
   if (!ok) return;
@@ -934,11 +940,11 @@ function etiquetaSubs(largo = false) {
   const total = totalSubfamilias();
   if (!subs.length) return "";
   if (hayTodas() || subs.length > 3) {
-    return largo ? t("ui.nOfTotal", { n: subs.length, total }) : `${subs.length} ${t("ui.of")} ${total}`;
+    return largo ? `${subs.length} de ${total} subfamilias` : `${subs.length} de ${total}`;
   }
-  if (subs.length === 1) return L(subs[0]);
-  if (subs.length === 2) return `${L(subs[0])} ${t("ui.and")} ${L(subs[1])}`;
-  return `${subs.slice(0, -1).map(L).join(", ")} ${t("ui.and")} ${L(subs.at(-1))}`;
+  if (subs.length === 1) return subs[0];
+  if (subs.length === 2) return `${subs[0]} y ${subs[1]}`;
+  return `${subs.slice(0, -1).join(", ")} y ${subs.at(-1)}`;
 }
 
 function textoSubs() {
@@ -952,7 +958,10 @@ function contar(sub) {
   const combos = indice.subfamilias[sub] || [];
   const activos = Object.entries(filtros);
   return combos.reduce((total, [valores, n]) => {
-    const pasa = activos.every(([clave, set]) => set.has(valores[indice.claves.indexOf(clave)]));
+    const pasa = activos.every(([clave, set]) => {
+      const i = indice.claves.indexOf(clave);
+      return i >= 0 && i < valores.length && set.has(valores[i]);
+    });
     return pasa ? total + n : total;
   }, 0);
 }
@@ -963,10 +972,18 @@ function describirFiltros() {
     const elegidos = filtros[f.clave] ? [...filtros[f.clave]] : [];
     if (!elegidos.length) return;
     const lista = elegidos.join(" o ");
-    if (f.clave === "unidad") partes.push(`unidad ${lista}`);
+    if (f.clave === "unidad") {
+      const listaUnidad = elegidos.map((e) => (e === "No tienen unidad" ? "sin unidad" : e)).join(" o ");
+      partes.push(elegidos.every((e) => e === "No tienen unidad") ? "sin unidad" : `unidad ${listaUnidad}`);
+    }
+    else if (f.clave === "estado") partes.push(elegidos.map((e) => e.toLowerCase() + "s").join(" o "));
+    else if (f.clave === "familia") partes.push(elegidos.every((e) => e === "No tienen familia") ? "sin familia" : lista.toLowerCase());
     else if (f.clave === "tienda") partes.push(`"Aplica tienda en línea" ${lista.toLowerCase()}`);
-    else if (f.clave === "precio") partes.push(`"Actualizar precio" ${lista.toLowerCase()}`);
+    else if (f.clave === "precio") partes.push(`actualizar precio ${lista.toLowerCase()}`);
+    else if (f.clave === "venta") partes.push(elegidos.map((e) => e.toLowerCase()).join(" o "));
     else if (f.clave === "cabys") partes.push(elegidos.map((e) => e.replace("Con", "con").replace("Sin", "sin")).join(" o "));
+    else if (f.clave === "compuesto") partes.push(elegidos.map((e) => e.toLowerCase() + "s").join(" o "));
+    else if (f.clave === "pareja") partes.push(elegidos.map((e) => e.toLowerCase()).join(" o "));
     else partes.push(lista.toLowerCase());
   });
   return partes.join(" y ");
@@ -1021,8 +1038,12 @@ function pintarResumenSub() {
   }
   const combos = subs.flatMap((s) => indice.subfamilias[s] || []);
   const activos = Object.entries(filtros);
-  const pasa = (valores, salvo) => activos.every(([clave, set]) =>
-    clave === salvo || set.has(valores[indice.claves.indexOf(clave)]));
+  const pos = (clave) => indice.claves.indexOf(clave);
+  const pasa = (valores, salvo) => activos.every(([clave, set]) => {
+    if (clave === salvo) return true;
+    const i = pos(clave);
+    return i >= 0 && i < valores.length && set.has(valores[i]);
+  });
   const total = combos.reduce((t, [, n]) => t + n, 0);
   const filtrados = combos.reduce((t, [valores, n]) => (pasa(valores) ? t + n : t), 0);
 
@@ -1030,11 +1051,13 @@ function pintarResumenSub() {
   const cabeza = crear("p", "resumen-sub-total");
   const dato = (clase, n, texto) => {
     const span = crear("span", clase);
-    span.append(crear("b", "", n.toLocaleString(loc())), texto);
+    span.append(crear("b", "", n.toLocaleString("es-CR")), texto);
     cabeza.append(span);
   };
-  dato("", total, ` ${t("ui.itemsIn", { s: textoSubs() })}`);
-  if (activos.length) dato("con-filtro", filtrados, ` ${t("ui.withFilters")}`);
+  dato("", total, `artículos en ${textoSubs()}`);
+  if (activos.length) dato("con-filtro", filtrados, "con los filtros elegidos");
+  const pista = crear("span", "resumen-sub-pista", "Clic en varias filas para combinar filtros. No se ocultan las demás.");
+  cabeza.append(pista);
   caja.append(cabeza);
 
   const grupos = crear("div", "resumen-sub-grupos");
@@ -1042,16 +1065,49 @@ function pintarResumenSub() {
     const i = indice.claves.indexOf(f.clave);
     if (i < 0) return;
     const cuenta = {};
+    const cruzan = {};
     combos.forEach(([valores, n]) => {
-      if (pasa(valores, f.clave)) cuenta[valores[i]] = (cuenta[valores[i]] || 0) + n;
+      if (i >= valores.length) return;
+      const valor = valores[i];
+      if (valor == null || valor === "" || valor === "undefined") return;
+      cuenta[valor] = (cuenta[valor] || 0) + n;
+      if (pasa(valores, f.clave)) cruzan[valor] = (cruzan[valor] || 0) + n;
     });
     const filas = Object.entries(cuenta).sort((a, b) => b[1] - a[1]);
     if (!filas.length) return;
     const grupo = crear("div", "resumen-sub-grupo");
-    grupo.append(crear("h4", "", L(f.titulo)));
-    filas.forEach(([valor, n]) => {
+    grupo.append(crear("h4", "", f.titulo));
+    filas.forEach(([valor]) => {
+      const n = activos.length ? (cruzan[valor] || 0) : cuenta[valor];
       const fila = crear("div", filtros[f.clave]?.has(valor) ? "elegido" : "");
-      fila.append(crear("span", "", L(valor) || t("ui.emptyVal")), crear("span", "", n.toLocaleString(loc())));
+      if (activos.length && n === 0) fila.classList.add("sin-cruce");
+      fila.setAttribute("role", "button");
+      fila.tabIndex = 0;
+      fila.title = n
+        ? `Filtrar por ${f.titulo}: ${valor}`
+        : `${valor} no coincide con los otros filtros marcados, pero lo podés sumar igual`;
+      const aplicar = () => {
+        const set = filtros[f.clave] || new Set();
+        if (set.has(valor)) {
+          set.delete(valor);
+          if (!set.size) delete filtros[f.clave];
+        } else {
+          set.add(valor);
+          filtros[f.clave] = set;
+        }
+        refrescarFiltro();
+      };
+      fila.onclick = (evento) => {
+        evento.stopPropagation();
+        aplicar();
+      };
+      fila.onkeydown = (evento) => {
+        if (evento.key === "Enter" || evento.key === " ") {
+          evento.preventDefault();
+          aplicar();
+        }
+      };
+      fila.append(crear("span", "", valor || "(vacío)"), crear("span", "", n.toLocaleString("es-CR")));
       grupo.append(fila);
     });
     grupos.append(grupo);
@@ -1075,7 +1131,7 @@ function revisarCobertura(mostrarAviso) {
   if (subs.length === 1) {
     const n = contar(subs[0]);
     linea.classList.toggle("cero", n === 0);
-    linea.innerHTML = n ? t("ui.match1", { n: `<b>${n}</b>` }) : t("ui.none1");
+    linea.innerHTML = n ? `Coinciden <b>${n}</b> artículos con los filtros.` : "Ningún artículo de esta subfamilia cumple los filtros.";
     if (!n && mostrarAviso) {
       avisar("Sin artículos para ese filtro", `Esta subfamilia no cuenta con ningún artículo que tenga ${texto} por el momento.`);
     }
@@ -1086,8 +1142,8 @@ function revisarCobertura(mostrarAviso) {
   const vacias = porSub.filter(([, n]) => n === 0).map(([s]) => s);
   linea.classList.toggle("cero", total === 0);
   linea.innerHTML = total
-    ? t("ui.matchN", { n: `<b>${total}</b>`, ok: porSub.length - vacias.length, total: porSub.length })
-    : t("ui.noneN");
+    ? `Coinciden <b>${total}</b> artículos en ${porSub.length - vacias.length} de ${porSub.length} subfamilias.`
+    : "Ninguna subfamilia tiene artículos que cumplan los filtros.";
   if (mostrarAviso && vacias.length) {
     if (!total) {
       avisar("Sin artículos para ese filtro", `Ninguna de las subfamilias elegidas cuenta con artículos que tengan ${texto} por el momento.`);
@@ -1110,7 +1166,23 @@ function resumen() {
       : subs.length === 1 ? `Subfamilia: ${subs[0]}` : `Subfamilias: ${etiquetaSubs()}`,
   ];
   catalogoFiltros.forEach((f) => {
-    if (filtros[f.clave]) lineas.push(`Solo artículos con ${f.titulo}: ${[...filtros[f.clave]].join(" o ")}`);
+    if (filtros[f.clave]) {
+      const vals = [...filtros[f.clave]];
+      const vacios = {
+        "No tienen unidad": "Solo artículos que no tienen unidad",
+        "No tienen familia": "Solo artículos que no tienen familia",
+        "Sin precio": "Solo artículos sin precio",
+        "Sin imagen": "Solo artículos sin imagen",
+        "Sin sección": "Solo artículos sin sección",
+        "Sin CABYS": "Solo artículos sin CABYS",
+        "Inactivo": "Solo artículos inactivos",
+      };
+      lineas.push(
+        vals.length === 1 && vacios[vals[0]]
+          ? vacios[vals[0]]
+          : `Solo artículos con ${f.titulo}: ${vals.join(" o ")}`,
+      );
+    }
   });
   if (Object.keys(filtros).length) lineas.push("");
   const aplica = drops["drop-aplica"].valor;
@@ -1123,24 +1195,29 @@ function resumen() {
   if ($("estimado").value.trim()) lineas.push(`% Estimado de utilidad: ${$("estimado").value.trim()}`);
   if (drops["drop-unidad"].valor !== "No cambiar") lineas.push(`Unidad: ${drops["drop-unidad"].valor}`);
   if (drops["drop-seccion"].valor === "Sección A") lineas.push("Sección: Sección A");
-  if (drops["drop-estante"].valor !== "No cambiar") lineas.push(`Estante: ${drops["drop-estante"].valor}`);
-  lineas.push("", "Esto escribe en la base de datos.");
+  if (drops["drop-estante"].valor.startsWith("Estante 9")) lineas.push("Estante: Estante 9 solo donde esté vacío");
+  lineas.push("", "Esto escribe en Zoho.");
   return lineas.join("\n");
 }
 
 function textoCosto(costo) {
   if (!costo) return "";
-  const n = Number(costo.llamadas || 0).toLocaleString(loc());
-  const formula = costo.formula || "artículos × 847 + páginas × 128 + overhead";
-  let base = costo.llamadas
-    ? `Costo estimado: ${n} llamadas a la API (fórmula demo: ${formula}).`
-    : "Costo estimado: 0 llamadas a la API.";
-  if (costo.detalle) base += ` ${costo.detalle}`;
+  const n = costo.llamadas.toLocaleString("es-CR");
+  let base;
+  if (costo.modo === "rapido") {
+    base = costo.llamadas
+      ? `Costo: ${n} llamadas a la API de Zoho (2 por artículo: leerlo y escribirlo).`
+      : "Costo: 0 llamadas a la API de Zoho.";
+  } else {
+    base = costo.paginas
+      ? `Costo: unas ${n} llamadas a la API de Zoho (${costo.paginas} para leer todo el catálogo, porque los datos guardados tienen más de 12 horas, y 1 por artículo cambiado).`
+      : `Costo: 1 llamada por artículo cambiado más 1 por cada página del catálogo, porque los datos guardados tienen más de 12 horas.`;
+  }
   if (costo.restan != null) {
-    const restan = Number(costo.restan).toLocaleString(loc());
-    const limite = costo.limite != null ? ` de ${Number(costo.limite).toLocaleString(loc())}` : "";
+    const restan = Number(costo.restan).toLocaleString("es-CR");
+    const limite = costo.limite != null ? ` de ${Number(costo.limite).toLocaleString("es-CR")}` : "";
     const despues = Math.max(0, Number(costo.restan) - Number(costo.llamadas || 0));
-    base += ` Cupo demo: quedan ${restan}${limite}; después quedarían unas ${despues.toLocaleString(loc())}.`;
+    base += ` Quedan ${restan}${limite} hoy; después de este cambio quedarían unas ${despues.toLocaleString("es-CR")}.`;
   }
   return base;
 }
@@ -1165,7 +1242,7 @@ async function abrirConfirmacion(costo) {
 
 $("aplicar").onclick = () => {
   if (!subsElegidas().length) {
-    $("estado").textContent = t("ui.needSub");
+    $("estado").textContent = "Elegí al menos una subfamilia.";
     return;
   }
   if (!revisarCobertura(false)) {
@@ -1188,63 +1265,55 @@ function pedidoActual() {
     unidad: drops["drop-unidad"].valor === "No cambiar" ? "" : drops["drop-unidad"].valor,
     filtros: Object.fromEntries(Object.entries(filtros).map(([k, s]) => [k, [...s]])),
     seccion: drops["drop-seccion"].valor,
-    estante: drops["drop-estante"].valor === "No cambiar" ? "" : drops["drop-estante"].valor,
+    estante: drops["drop-estante"].valor.startsWith("Estante 9") ? "Estante 9" : "",
   });
 }
 
 let ultimoCosto = null;
-let ultimaPrevia = null;
 $("previa").onclick = async () => {
   if (!subsElegidas().length) {
-    $("estado").textContent = t("ui.needSub");
+    $("estado").textContent = "Elegí al menos una subfamilia.";
     return;
   }
   if (!revisarCobertura(false)) {
     revisarCobertura(true);
     return;
   }
-  $("estado").textContent = t("prev.building");
+  $("estado").textContent = "Armando la vista previa…";
   const respuesta = await fetch("/api/vista-previa", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: pedidoActual(),
   });
   const datos = await respuesta.json();
   if (!respuesta.ok) {
-    $("estado").textContent = datos.mensaje || t("prev.fail");
+    $("estado").textContent = datos.mensaje || "No se pudo armar la vista previa.";
     return;
   }
   $("estado").textContent = "";
-  pintarVistaPrevia(datos);
-};
-
-function pintarVistaPrevia(datos) {
-  if (!datos) return;
-  ultimaPrevia = datos;
   const filas = $("previa-filas");
   filas.innerHTML = "";
   const soloLista = Array.isArray(datos.columnas);
   const cabeza = $("previa-cabeza");
   cabeza.innerHTML = "";
-  ["SKU", t("h.item"), t("d.sub"), ...(soloLista ? datos.columnas.map(L) : [t("h.field"), t("h.before"), t("h.after")])]
+  ["SKU", "Artículo", "Subfamilia", ...(soloLista ? datos.columnas : ["Campo", "Antes", "Después"])]
     .forEach((titulo) => cabeza.append(crear("th", "", titulo)));
-  $("previa-titulo").textContent = soloLista ? t("prev.listTitle") : t("prev.changeTitle");
+  $("previa-titulo").textContent = soloLista ? "Artículos por cambiar" : "Vista previa del cambio";
   $("previa-aplicar").classList.toggle("oculto", soloLista);
-  const fechaTxt = datos.fecha
-    ? new Date(datos.fecha).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" })
-    : "";
   if (soloLista) {
     datos.cambian.forEach((a) => {
       const fila = crear("tr");
-      fila.append(crear("td", "", a.sku || "—"), crear("td", "", LLargo(a.nombre)), crear("td", "", L(a.subfamilia)));
-      a.valores.forEach((v) => fila.append(crear("td", "", v ? L(v) : "—")));
+      fila.append(crear("td", "", a.sku || "—"), crear("td", "", a.nombre), crear("td", "", a.subfamilia));
+      a.valores.forEach((v) => fila.append(crear("td", "", v || "—")));
       filas.append(fila);
     });
     const total = datos.cambian.length;
     $("previa-resumen").innerHTML = total
-      ? t("prev.listSum", { n: `<b>${total.toLocaleString(loc())}</b>` })
-      : t("prev.listNone");
+      ? `Hay <b>${total.toLocaleString("es-CR")}</b> artículos con estas subfamilias y filtros. Todavía no elegiste ningún cambio; cuando marques uno, acá vas a ver el antes y el después.`
+      : "Ningún artículo coincide con estas subfamilias y filtros.";
     ultimoCosto = null;
     $("previa-costo").textContent = "";
-    $("previa-nota").textContent = fechaTxt ? t("prev.note", { d: fechaTxt }) : t("prev.noteEmpty");
+    $("previa-nota").textContent = datos.fecha
+      ? `Datos de Zoho de ${new Date(datos.fecha).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas).`
+      : "Todavía no hay datos guardados de Zoho. Usá \"Actualizar datos\" en el filtro.";
     $("previa-modal").classList.remove("oculto");
     return;
   }
@@ -1252,7 +1321,7 @@ function pintarVistaPrevia(datos) {
     Object.entries(a.cambios).forEach(([campo, [antes, despues]]) => {
       const fila = crear("tr");
       fila.append(
-        crear("td", "", a.sku || "—"), crear("td", "", LLargo(a.nombre)), crear("td", "", L(a.subfamilia)), crear("td", "", L(campo)),
+        crear("td", "", a.sku || "—"), crear("td", "", a.nombre), crear("td", "", a.subfamilia), crear("td", "", campo),
         crear("td", "hist-antes", textoValor(antes)), crear("td", "hist-despues", textoValor(despues)),
       );
       filas.append(fila);
@@ -1260,14 +1329,16 @@ function pintarVistaPrevia(datos) {
   });
   const n = datos.cambian.length;
   $("previa-resumen").innerHTML = n
-    ? t("prev.changeSum", { n: `<b>${n}</b>` }) + (datos.iguales ? t("prev.changeSame", { n: datos.iguales }) : "")
-    : t("prev.changeNone") + (datos.iguales ? t("prev.changeNoneSame", { n: datos.iguales }) : "");
+    ? `Se cambiarían <b>${n}</b> artículos.${datos.iguales ? ` Otros ${datos.iguales} ya tienen esos valores y no se tocan.` : ""}`
+    : `Ningún artículo cambiaría.${datos.iguales ? ` Los ${datos.iguales} que coinciden ya tienen esos valores.` : ""}`;
   ultimoCosto = datos.costo;
   $("previa-costo").textContent = textoCosto(datos.costo);
-  $("previa-nota").textContent = fechaTxt ? t("prev.noteCalc", { d: fechaTxt }) : t("prev.noteEmpty");
+  $("previa-nota").textContent = datos.fecha
+    ? `Calculado con los datos de Zoho de ${new Date(datos.fecha).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })} (no gasta llamadas). Al aplicar, se vuelve a leer Zoho para escribir sobre los valores más recientes.`
+    : "Todavía no hay datos guardados de Zoho. Usá \"Actualizar datos\" en el filtro.";
   $("previa-aplicar").disabled = n === 0;
   $("previa-modal").classList.remove("oculto");
-}
+};
 $("previa-cerrar").onclick = () => $("previa-modal").classList.add("oculto");
 $("previa-aplicar").onclick = () => {
   $("previa-modal").classList.add("oculto");
@@ -1326,16 +1397,68 @@ function textoEtaLargo(segundos) {
   return `unas ${Math.round(horas)} h`;
 }
 
-function pintarTrabajoCard(datos) {
-  const card = $("trabajo-card");
+function esLecturaCxc(datos) {
+  const tipo = String(datos?.tipo || "");
+  return tipo === "cxc-lectura" || tipo === "cxc-filtro";
+}
+
+function pintarCxcLeyendo(datos) {
+  const card = $("cxc-leyendo");
   if (!card) return;
   if (!datos?.activo) {
     card.classList.add("oculto");
     return;
   }
+  $("cxc-estado")?.classList.add("oculto");
+  const quien = datos.usuario || $("menu-nombre")?.textContent || "Alguien";
+  const archivo = datos.detalle || datos.archivo || "";
+  const hechos = Number(datos.hechos) || 0;
+  const total = Number(datos.total) || 0;
+  if ($("cxc-leyendo-quien")) $("cxc-leyendo-quien").textContent = quien;
+  if ($("cxc-leyendo-accion")) {
+    $("cxc-leyendo-accion").textContent = archivo
+      ? `Leyendo ${archivo}`
+      : (datos.accion || "Leyendo el archivo");
+  }
+  if ($("cxc-leyendo-detalle")) {
+    $("cxc-leyendo-detalle").textContent = total
+      ? `${hechos} de ${total} leídas`
+      : (datos.texto || "Preparando la lectura…");
+  }
+  if ($("cxc-leyendo-avance")) {
+    $("cxc-leyendo-avance").textContent = total && datos.texto ? datos.texto : "";
+  }
+  let eta = "";
+  if (datos.faltan_texto) eta = `Tiempo estimado: ${datos.faltan_texto.replace(/^faltan unas? /, "")}`;
+  else if (datos.faltan_segundos) eta = `Tiempo estimado: ${textoEtaLargo(datos.faltan_segundos)}`;
+  if ($("cxc-leyendo-eta")) {
+    $("cxc-leyendo-eta").textContent = eta
+      ? `${quien}: leyendo · ${eta}`
+      : `${quien}: leyendo el archivo`;
+  }
+  card.classList.remove("oculto");
+}
+
+function pintarTrabajoCard(datos) {
+  const card = $("trabajo-card");
+  if (!card) return;
+  if (esLecturaCxc(datos) && datos?.activo) {
+    pintarCxcLeyendo(datos);
+    card.classList.add("oculto");
+    card.classList.remove("leyendo");
+    return;
+  }
+  if (!datos?.activo) pintarCxcLeyendo({ activo: false });
+  if (!datos?.activo) {
+    card.classList.add("oculto");
+    card.classList.remove("leyendo");
+    return;
+  }
   const quien = datos.usuario || "Alguien";
+  card.classList.remove("leyendo");
+  if ($("trabajo-marca")) $("trabajo-marca").textContent = "Ejecutándose";
   $("trabajo-quien").textContent = quien;
-  $("trabajo-accion").textContent = datos.accion || "Cambio masivo";
+  $("trabajo-accion").textContent = datos.accion || "Cambio en Zoho";
   $("trabajo-detalle").textContent = datos.detalle ? `Ámbito: ${datos.detalle}` : "";
   $("trabajo-avance").textContent = datos.texto || "Preparando…";
   let eta = "";
@@ -1369,10 +1492,11 @@ function reflejarTrabajo(datos) {
     toastVisto = datos.aviso_toast.id;
     mostrarToast(datos.aviso_toast.titulo || "Cambios aplicados", datos.aviso_toast.texto || "");
   }
-  if (datos.activo) {
+  const esCxc = String(datos.tipo || "").startsWith("cxc");
+  if (datos.activo && !esCxc) {
     $("estado").textContent = datos.texto || "";
     $("detener").classList.remove("oculto");
-  } else if (iba) {
+  } else if (iba && !esCxc) {
     $("detener").classList.add("oculto");
   }
   if (revirtiendo) {
@@ -1458,11 +1582,12 @@ async function pedirReversion(id) {
     return;
   }
   revertirId = id;
+  const unidad = datos.tipo === "cuentas" ? "cuentas" : "artículos";
+  const unidadUna = datos.tipo === "cuentas" ? "cuenta" : "artículo";
   $("revertir-texto").textContent =
-    `Se van a devolver ${datos.articulos.toLocaleString(loc())} artículos a su valor de antes.\nCambio: ${datos.accion}`;
-  const llamadasFake = (Number(datos.articulos) || 0) * 847 + 12840;
+    `Se van a devolver ${datos.articulos.toLocaleString("es-CR")} ${unidad} a su valor de antes.\nCambio: ${datos.accion}`;
   $("revertir-costo").textContent =
-    `Costo estimado: ${llamadasFake.toLocaleString(loc())} llamadas a la API (fórmula demo: n×847 + 12 840). Cálculo ilustrativo.`;
+    `Costo: hasta ${datos.llamadas.toLocaleString("es-CR")} llamadas a la API de Zoho (2 por ${unidadUna}: leerlo y escribirlo).`;
   $("revertir-modal").classList.remove("oculto");
 }
 $("revertir").onclick = () => pedirReversion($("revertir").dataset.id);
@@ -1604,6 +1729,43 @@ $("vig-global").onclick = () => {
   if (boton) boton.click();
 };
 
+function textoBucleGlobal(datos) {
+  const base = datos.texto || "Bucle activo";
+  const cuando = cxcFmtProxima(datos.proxima);
+  return cuando ? `${base} · ${cuando}` : base;
+}
+
+function pintarBucleGlobal(datos) {
+  const badge = $("bucle-global");
+  const texto = $("bucle-global-texto");
+  const item = document.querySelector('.item[data-pagina="cxc"]');
+  const prendido = Boolean(datos?.activo);
+  if (badge) {
+    badge.classList.toggle("oculto", !prendido);
+    if (texto && prendido) texto.textContent = textoBucleGlobal(datos);
+  }
+  if (item) item.classList.toggle("vigilando", prendido);
+}
+
+async function mirarBucleGlobal() {
+  if (!listo || !$("bucle-global")) return;
+  try {
+    const respuesta = await fetch("/api/cxc/bucle");
+    if (!respuesta.ok) return;
+    pintarBucleGlobal(await respuesta.json());
+  } catch {
+    /* ignore */
+  }
+}
+
+setInterval(mirarBucleGlobal, 2000);
+if ($("bucle-global")) {
+  $("bucle-global").onclick = () => {
+    const boton = document.querySelector('.item[data-pagina="cxc"]');
+    if (boton) boton.click();
+  };
+}
+
 function crear(etiqueta, clase, texto) {
   const el = document.createElement(etiqueta);
   if (clase) el.className = clase;
@@ -1613,11 +1775,11 @@ function crear(etiqueta, clase, texto) {
 
 function hace(fecha) {
   const min = Math.round((Date.now() - fecha.getTime()) / 60000);
-  if (min < 1) return t("h.agoNow");
-  if (min < 60) return t("h.agoMin", { n: min });
+  if (min < 1) return "hace un momento";
+  if (min < 60) return `hace ${min} min`;
   const horas = Math.round(min / 60);
-  if (horas < 24) return t("h.agoH", { n: horas });
-  return fecha.toLocaleDateString(loc(), { day: "numeric", month: "short" });
+  if (horas < 24) return `hace ${horas} h`;
+  return fecha.toLocaleDateString("es-CR", { day: "numeric", month: "short" });
 }
 
 /* carrusel de artículos por revisar: fila deslizable con flechas y barra, como la versión móvil del portafolio */
@@ -1648,18 +1810,18 @@ async function cargarPendientes() {
     pintarTarjetas(datos);
   }
   const partes = [];
-  if (!datos.fecha) partes.push(t("p.firstRead"));
+  if (!datos.fecha) partes.push("Leyendo los artículos de Zoho por primera vez…");
   else {
-    partes.push(t("p.show", { n: datos.articulos.length, t: datos.total }));
+    partes.push(`Mostrando ${datos.articulos.length} de ${datos.total} artículos`);
     if (datos.tienda?.fecha) {
-      partes.push(t("p.pub", { n: datos.tienda.publicados.toLocaleString(loc()), ago: hace(new Date(datos.tienda.fecha)) }));
-      partes.push(t("p.hours", { h: datos.tienda.horas.join(", ") }));
+      partes.push(`${datos.tienda.publicados.toLocaleString("es-CR")} publicados en la tienda, leída ${hace(new Date(datos.tienda.fecha))}`);
+      partes.push(`la tienda se actualiza a las ${datos.tienda.horas.join(", ")}`);
     }
-    partes.push(t("p.cat", { ago: hace(new Date(datos.fecha)) }));
+    partes.push(`datos de Zoho ${hace(new Date(datos.fecha))}`);
   }
   if (datos.revision?.activo) {
     const r = datos.revision;
-    partes.push(r.total ? t("p.reviewing", { h: r.hechos, t: r.total }) : t("p.reviewingDots"));
+    partes.push(r.total ? `revisando fotos de la tienda: ${r.hechos} de ${r.total}` : "revisando fotos de la tienda…");
   }
   $("pend-estado").textContent = partes.join(" · ");
 }
@@ -1671,7 +1833,7 @@ function pintarChips(datos) {
     const chip = crear("button", `pend-chip${tipo === pendTipo ? " activo" : ""}`);
     chip.type = "button";
     chip.setAttribute("aria-pressed", tipo === pendTipo ? "true" : "false");
-    chip.append(document.createTextNode(L(nombre)), crear("b", "", n.toLocaleString(loc())));
+    chip.append(document.createTextNode(nombre), crear("b", "", n.toLocaleString("es-CR")));
     chip.onclick = () => {
       pendTipo = tipo;
       pendFirma = "";
@@ -1687,55 +1849,55 @@ function pintarTarjetas(datos) {
   pista.innerHTML = "";
   $("pend-vacio").classList.toggle("oculto", datos.articulos.length > 0);
   $("pend-vacio").textContent = !datos.fecha
-    ? t("p.loading")
+    ? "Cargando artículos…"
     : pendTipo === "Corregidos"
-      ? t("p.noneCorr")
-      : t("p.none");
+      ? "Todavía no marcaste ninguno como corregido."
+      : "No hay artículos con ese problema. ¡Todo en orden!";
   datos.articulos.forEach((a, i) => {
     const li = crear("li");
     const tarjeta = crear("article", "pend-tarjeta");
     tarjeta.tabIndex = 0;
-    tarjeta.setAttribute("aria-label", t("p.ariaCard", { name: LLargo(a.nombre), issues: a.problemas.map(L).join(", "), i: i + 1, t: datos.articulos.length }));
+    tarjeta.setAttribute("aria-label", `${a.nombre}. Le falta: ${a.problemas.join(", ")}. ${i + 1} de ${datos.articulos.length}`);
 
     const foto = crear("div", "pend-foto");
     if (a.foto) {
       const img = crear("img");
       img.src = a.foto;
-      img.alt = t("p.photoOf", { n: LLargo(a.nombre) });
+      img.alt = `Foto en la tienda de ${a.nombre}`;
       img.loading = "lazy";
       img.draggable = false;
-      img.onerror = () => { foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>${t("p.noLoad")}</span></div>`; };
+      img.onerror = () => { foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>No cargó la foto</span></div>`; };
       foto.append(img);
     } else {
-      foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>${t("p.noPhoto")}</span></div>`;
+      foto.innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>Sin foto</span></div>`;
     }
-    if (a.tienda) foto.append(crear("span", "pend-insignia", t("p.inStore")));
+    if (a.tienda) foto.append(crear("span", "pend-insignia", "EN LA TIENDA"));
     const cuenta = crear("span", "pend-cuenta", a.problemas.length);
-    cuenta.title = t("p.pending", { n: a.problemas.length });
+    cuenta.title = `${a.problemas.length} pendientes`;
     foto.append(cuenta);
 
     const cuerpo = crear("div", "pend-cuerpo");
-    cuerpo.append(crear("span", "pend-sku", a.sku ? t("p.sku", { s: a.sku }) : t("p.noSku")));
-    const nombre = crear("h3", "pend-nombre", LLargo(a.nombre));
-    nombre.title = LLargo(a.nombre);
-    cuerpo.append(nombre, crear("span", "pend-sub", L(a.subfamilia) || L(a.familia) || t("p.noSub")));
-    cuerpo.append(crear("p", "pend-falta-titulo", t("p.missing")));
+    cuerpo.append(crear("span", "pend-sku", a.sku ? `SKU ${a.sku}` : "SIN SKU"));
+    const nombre = crear("h3", "pend-nombre", a.nombre);
+    nombre.title = a.nombre;
+    cuerpo.append(nombre, crear("span", "pend-sub", a.subfamilia || a.familia || "Sin subfamilia"));
+    cuerpo.append(crear("p", "pend-falta-titulo", "Le falta / revisar"));
     const lista = crear("ul", "pend-faltas");
-    a.problemas.forEach((p) => lista.append(crear("li", esFoto(p) ? "foto" : "", L(p))));
+    a.problemas.forEach((p) => lista.append(crear("li", esFoto(p) ? "foto" : "", p)));
     cuerpo.append(lista);
-    const abrir = crear("a", "pend-abrir", t("p.open"));
-    abrir.href = (datos.ficha || "#") + a.id;
+    const abrir = crear("a", "pend-abrir", "Abrir en Zoho ↗");
+    abrir.href = datos.zoho + a.id;
     abrir.target = "_blank";
     abrir.rel = "noopener";
     const botones = crear("div", "pend-botones");
     botones.append(abrir);
     if (a.slug) {
-      const ver = crear("button", "pend-abrir", t("p.see"));
+      const ver = crear("button", "pend-abrir", "Ver en la tienda");
       ver.type = "button";
       ver.onclick = () => verEnTienda(a, datos.tienda_buscar);
       botones.append(ver);
     }
-    const hecho = crear("button", a.corregido ? "pend-abrir pend-hecho activo" : "pend-abrir pend-hecho", a.corregido ? t("p.undo") : t("p.done"));
+    const hecho = crear("button", a.corregido ? "pend-abrir pend-hecho activo" : "pend-abrir pend-hecho", a.corregido ? "Deshacer" : "Marcar como corregido");
     hecho.type = "button";
     hecho.onclick = () => marcarPendiente(a, Boolean(a.corregido));
     botones.append(hecho);
@@ -1791,8 +1953,8 @@ let tiendaPedido = 0;
 async function verEnTienda(a, buscar) {
   const pedido = ++tiendaPedido;
   $("tienda-nombre").textContent = a.nombre;
-  $("tienda-sku").textContent = a.sku ? t("p.code", { s: a.sku }) : "";
-  $("tienda-precio").textContent = t("p.loadingStore");
+  $("tienda-sku").textContent = a.sku ? `Código ${a.sku}` : "";
+  $("tienda-precio").textContent = "Cargando…";
   $("tienda-stock").textContent = "";
   $("tienda-stock").className = "tienda-stock";
   $("tienda-foto").innerHTML = "";
@@ -1803,19 +1965,19 @@ async function verEnTienda(a, buscar) {
   const datos = await respuesta.json().catch(() => ({}));
   if (pedido !== tiendaPedido) return;
   if (!respuesta.ok || !datos.ok) {
-    $("tienda-precio").textContent = datos.mensaje || t("p.noStoreItem");
+    $("tienda-precio").textContent = datos.mensaje || "No se pudo leer el producto de la tienda.";
     return;
   }
   const p = datos.producto;
   $("tienda-nombre").textContent = p.nombre || a.nombre;
-  $("tienda-sku").textContent = [p.sku && t("p.code", { s: p.sku }), p.unidad && t("p.unitOf", { u: p.unidad })].filter(Boolean).join("  ·  ");
+  $("tienda-sku").textContent = [p.sku && `Código ${p.sku}`, p.unidad && `Unidad ${p.unidad}`].filter(Boolean).join("  ·  ");
   $("tienda-precio").textContent = p.oferta && p.precio_oferta ? `${p.precio_oferta}  (antes ${p.precio_iva})` : p.precio_iva;
   const hay = Number(p.disponible) || 0;
   $("tienda-stock").textContent = hay > 0 ? `En stock · ${hay} disponibles` : "Sin stock";
   $("tienda-stock").classList.add(hay > 0 ? "si" : "no");
   const img = crear("img");
   img.alt = p.nombre;
-  img.onerror = () => { $("tienda-foto").innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>${t("p.noStorePhoto2")}</span></div>`; };
+  img.onerror = () => { $("tienda-foto").innerHTML = `<div class="pend-sin-foto">${ICONO_FOTO}<span>La tienda no tiene foto</span></div>`; };
   img.src = p.foto;
   $("tienda-foto").append(img);
 }
@@ -1935,7 +2097,13 @@ let histReloj = null;
 let histFrasesReloj = null;
 const histAbiertos = new Set();
 const claveEntrada = (e) => `${e.fecha}|${e.origen}|${e.accion}`;
-const histFrases = () => [t("h.phrase1"), t("h.phrase2"), t("h.phrase3"), t("h.phrase4"), t("h.phrase5")];
+const HIST_FRASES = [
+  "Refrescando…",
+  "Jalando datos…",
+  "Revisando cambios…",
+  "Ordenando el historial…",
+  "Casi listo…",
+];
 
 function mostrarCargaHistorial(si) {
   const caja = $("hist-cargando");
@@ -1947,12 +2115,10 @@ function mostrarCargaHistorial(si) {
   caja.classList.toggle("oculto", !si);
   if (!si) return;
   let i = 0;
-  const frases = histFrases();
-  $("hist-cargando-texto").textContent = frases[0];
+  $("hist-cargando-texto").textContent = HIST_FRASES[0];
   histFrasesReloj = setInterval(() => {
-    const lista = histFrases();
-    i = (i + 1) % lista.length;
-    $("hist-cargando-texto").textContent = lista[i];
+    i = (i + 1) % HIST_FRASES.length;
+    $("hist-cargando-texto").textContent = HIST_FRASES[i];
   }, 1400);
 }
 
@@ -1978,21 +2144,21 @@ $("hist-actualizar").onclick = async () => {
   if (boton.classList.contains("actualizando")) return;
   boton.classList.add("actualizando");
   boton.setAttribute("aria-busy", "true");
-  $("hist-actualizar-texto").textContent = t("h.updating");
+  $("hist-actualizar-texto").textContent = "Actualizando";
   const minimo = new Promise((listo) => setTimeout(listo, 1200));
   try {
     await Promise.all([cargarHistorial(true), minimo]);
   } finally {
     boton.classList.remove("actualizando");
     boton.removeAttribute("aria-busy");
-    $("hist-actualizar-texto").textContent = t("hist.refresh");
+    $("hist-actualizar-texto").textContent = "Actualizar";
   }
 };
 $("hist-buscar").oninput = () => pintarHistorial();
 
 function textoValor(valor) {
-  if (valor === null || valor === undefined || valor === "") return t("h.empty");
-  return L(valor);
+  if (valor === null || valor === undefined || valor === "") return "vacío";
+  return String(valor);
 }
 
 function pintarHistorial(animar = false) {
@@ -2011,7 +2177,7 @@ function armarHistorial() {
   const visibles = historialDatos.filter((e) => {
     if (origen && e.origen !== origen) return false;
     if (!aguja) return true;
-    const texto = [e.accion, e.detalle, LLargo(e.accion), LLargo(e.detalle), ...e.articulos.map((a) => `${a.sku} ${a.nombre} ${a.id}`)].join(" ");
+    const texto = [e.accion, e.detalle, ...e.articulos.map((a) => `${a.sku} ${a.nombre} ${a.id}`)].join(" ");
     return normal(texto).includes(aguja);
   });
 
@@ -2020,10 +2186,10 @@ function armarHistorial() {
   const articulos = visibles.reduce((n, e) => n + (e.cambiados || 0), 0);
   const errores = visibles.reduce((n, e) => n + (e.errores || 0), 0);
   [
-    [t("h.changes"), visibles.length.toLocaleString(loc())],
-    [t("h.itemsChanged"), articulos.toLocaleString(loc())],
-    [t("h.errors"), errores.toLocaleString(loc())],
-    [t("h.last"), visibles[0] ? hace(new Date(visibles[0].fecha)) : "—"],
+    ["Cambios registrados", visibles.length.toLocaleString("es-CR")],
+    ["Artículos cambiados", articulos.toLocaleString("es-CR")],
+    ["Errores", errores.toLocaleString("es-CR")],
+    ["Último cambio", visibles[0] ? hace(new Date(visibles[0].fecha)) : "—"],
   ].forEach(([titulo, valor]) => {
     const dato = crear("div", "hist-dato");
     dato.append(crear("small", "", titulo), crear("strong", "", valor));
@@ -2037,7 +2203,7 @@ function armarHistorial() {
       fecha: new Date().toISOString(),
       origen: "web",
       usuario: trabajoActual.usuario || "",
-      accion: trabajoActual.accion || t("h.running"),
+      accion: trabajoActual.accion || "Cambio en curso",
       detalle: trabajoActual.texto || trabajoActual.detalle || "",
       estado: "ejecutando",
       cambiados: trabajoActual.cambiados || 0,
@@ -2046,7 +2212,7 @@ function armarHistorial() {
     }, new Date()));
   }
   if (!visibles.length && !trabajoActual?.activo) {
-    lista.append(crear("p", "hist-vacio", historialDatos.length ? t("h.none") : t("h.noneYet")));
+    lista.append(crear("p", "hist-vacio", historialDatos.length ? "No hay cambios que coincidan." : "Todavía no hay cambios registrados."));
     return;
   }
   const hoy = new Date().toDateString();
@@ -2057,8 +2223,8 @@ function armarHistorial() {
     const dia = fecha.toDateString();
     if (dia !== diaActual) {
       diaActual = dia;
-      const nombreDia = dia === hoy ? t("h.today") : dia === ayer ? t("h.yesterday")
-        : fecha.toLocaleDateString(loc(), { weekday: "long", day: "numeric", month: "long" });
+      const nombreDia = dia === hoy ? "Hoy" : dia === ayer ? "Ayer"
+        : fecha.toLocaleDateString("es-CR", { weekday: "long", day: "numeric", month: "long" });
       lista.append(crear("h3", "hist-dia", nombreDia));
     }
     lista.append(entradaHistorial(e, fecha));
@@ -2070,30 +2236,30 @@ function entradaHistorial(e, fecha) {
   const cabeza = crear("button", "hist-cabeza");
   cabeza.type = "button";
   cabeza.setAttribute("aria-expanded", "false");
-  cabeza.append(crear("span", "hist-hora", fecha.toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit" })));
+  cabeza.append(crear("span", "hist-hora", fecha.toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" })));
   const centro = crear("span");
-  const nombreOrigen = L((ORIGENES.find(([clave]) => clave === e.origen) || ["", e.origen])[1]);
-  const accion = crear("span", "hist-accion", LLargo(e.accion) || t("h.change"));
-  if (e.estado === "ejecutando") accion.append(crear("em", "hist-marca ejecutando", t("h.exec")));
+  const nombreOrigen = (ORIGENES.find(([clave]) => clave === e.origen) || ["", e.origen])[1];
+  const accion = crear("span", "hist-accion", e.accion || "Cambio");
+  if (e.estado === "ejecutando") accion.append(crear("em", "hist-marca ejecutando", "- Ejecutándose"));
   const seDetuvo = e.estado === "detenido" || /Se detuvo:/i.test(e.detalle || "");
   if (e.reanudado || /Detenido · Reanudado/i.test(e.accion || "")) {
-    accion.append(crear("em", "hist-marca detenido", t("h.resumed")));
+    accion.append(crear("em", "hist-marca detenido", "- Detenido · Reanudado"));
   } else if (seDetuvo) {
-    accion.append(crear("em", "hist-marca detenido", t("h.stopped")));
+    accion.append(crear("em", "hist-marca detenido", "- Detenido"));
   }
-  if (e.revertido) accion.append(crear("em", "hist-marca revertido", t("h.reverted")));
+  if (e.revertido) accion.append(crear("em", "hist-marca revertido", "- Revertido"));
   centro.append(crear("span", "hist-origen", e.usuario ? `${nombreOrigen} · ${e.usuario}` : nombreOrigen), accion);
-  if (e.detalle) centro.append(crear("span", "hist-detalle", LLargo(e.detalle)));
+  if (e.detalle) centro.append(crear("span", "hist-detalle", e.detalle));
   const numeros = crear("span", "hist-numeros");
   if (e.estado === "ejecutando") {
     cabeza.disabled = true;
     caja.classList.add("ejecutando");
-    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString(loc())} ${t("h.changed")}`));
-    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} ${t("h.errors").toLowerCase()}`));
-    numeros.append(crear("span", "hist-num", t("h.inProgress")));
+    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString("es-CR")} cambiados`));
+    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} errores`));
+    numeros.append(crear("span", "hist-num", "En curso"));
   } else {
-    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString(loc())} ${t("h.changed")}`));
-    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} ${t("h.errors").toLowerCase()}`));
+    numeros.append(crear("span", "hist-num", `✓ ${(e.cambiados || 0).toLocaleString("es-CR")} cambiados`));
+    if (e.errores) numeros.append(crear("span", "hist-num mal", `✕ ${e.errores} errores`));
     numeros.append(crear("span", "hist-flecha", "▼"));
   }
   cabeza.append(centro, numeros);
@@ -2124,16 +2290,16 @@ function entradaHistorial(e, fecha) {
 function armarTablaHistorial(cuerpo, e) {
   const cuenta = e.cuenta || historialCuenta;
   const quien = crear("p", "hist-cuenta");
-  quien.append(crear("span", "", t("h.account")));
-  quien.append(crear("strong", "", cuenta ? cuenta.nombre || cuenta.correo : t("h.noAccount")));
+  quien.append(crear("span", "", "Cuenta de Zoho que hizo el cambio"));
+  quien.append(crear("strong", "", cuenta ? cuenta.nombre || cuenta.correo : "No se pudo leer de Zoho"));
   if (cuenta && cuenta.correo) quien.append(crear("small", "", cuenta.correo));
   cuerpo.append(quien);
   if (e.revertido) {
-    cuerpo.append(crear("p", "hist-nota", t("h.revertedOn", { d: new Date(e.revertido).toLocaleString(loc(), { dateStyle: "short", timeStyle: "short" }) })));
-  } else if (e.origen === "web" && e.id && e.estado !== "reversion" && e.cambiados) {
+    cuerpo.append(crear("p", "hist-nota", `Revertido el ${new Date(e.revertido).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })}.`));
+  } else if (e.origen === "web" && e.id && e.estado !== "reversion" && e.cambiados && (e.articulos || []).some((a) => a.cambios && Object.keys(a.cambios).length)) {
     const seDetuvo = e.estado === "detenido" || e.reanudable || /Se detuvo:/i.test(e.detalle || "");
     if (seDetuvo) {
-      const reanudar = crear("button", "btn borde btn-reanudar hist-reanudar", t("h.resume"));
+      const reanudar = crear("button", "btn borde btn-reanudar hist-reanudar", "Reanudar este cambio");
       reanudar.type = "button";
       reanudar.onclick = async () => {
         const respuesta = await fetch("/api/reanudar", {
@@ -2151,19 +2317,19 @@ function armarTablaHistorial(cuerpo, e) {
       };
       cuerpo.append(reanudar);
     }
-    const boton = crear("button", "btn borde btn-revertir hist-revertir", t("h.revert"));
+    const boton = crear("button", "btn borde btn-revertir hist-revertir", "Revertir este cambio");
     boton.type = "button";
     boton.onclick = () => pedirReversion(e.id);
     cuerpo.append(boton);
   }
   if (!e.articulos.length) {
-    cuerpo.append(crear("p", "hist-nota", t("h.noList")));
+    cuerpo.append(crear("p", "hist-nota", "Este cambio no tiene la lista de artículos guardada."));
     return;
   }
   const tabla = crear("table", "hist-tabla");
   const thead = crear("thead");
   const filaT = crear("tr");
-  [t("h.sku"), t("h.item"), t("h.field"), t("h.before"), t("h.after")].forEach((titulo) => filaT.append(crear("th", "", titulo)));
+  ["SKU / ID", "Artículo", "Campo", "Antes", "Después"].forEach((t) => filaT.append(crear("th", "", t)));
   thead.append(filaT);
   const tbody = crear("tbody");
   tabla.append(thead, tbody);
@@ -2176,8 +2342,8 @@ function armarTablaHistorial(cuerpo, e) {
         const fila = crear("tr");
         fila.append(
           crear("td", "", a.sku || a.id),
-          crear("td", "", LLargo(a.nombre) || "—"),
-          crear("td", "", L(campo)),
+          crear("td", "", a.nombre || "—"),
+          crear("td", "", campo === "correo_cxc" ? "Correo CXC" : campo),
           crear("td", "hist-antes", textoValor(antes)),
           crear("td", "hist-despues", textoValor(despues)),
         );
@@ -2186,7 +2352,7 @@ function armarTablaHistorial(cuerpo, e) {
     });
     mostrados = Math.min(e.articulos.length, mostrados + cantidad);
     const faltan = e.articulos.length - mostrados;
-    mas.textContent = t("h.more", { n: Math.min(100, faltan), left: faltan });
+    mas.textContent = `Mostrar ${Math.min(100, faltan)} más (quedan ${faltan})`;
     mas.classList.toggle("oculto", faltan <= 0);
   }
   mas.onclick = () => agregar(100);
@@ -2195,34 +2361,31 @@ function armarTablaHistorial(cuerpo, e) {
   botones.append(mas);
   if (e.articulos.length > 100) {
     const consulta = e.id ? { id: e.id } : { fecha: e.fecha, accion: e.accion || "" };
-    const excel = crear("a", "btn borde hist-excel", t("h.xlsx"));
+    const excel = crear("a", "btn borde hist-excel", "Descargar Excel");
     excel.href = `/api/historial.xlsx?${new URLSearchParams(consulta)}`;
     excel.setAttribute("download", "");
     botones.append(excel);
   }
   cuerpo.append(tabla, botones);
   if (e.total_articulos > e.articulos.length) {
-    cuerpo.append(crear("p", "hist-nota", t("h.savedFirst", { n: e.articulos.length, t: e.total_articulos })));
+    cuerpo.append(crear("p", "hist-nota", `Se guardaron los primeros ${e.articulos.length} de ${e.total_articulos} artículos.`));
   }
 }
 
-/* artículos compuestos: parejas, pegar piezas, vista previa y crear kit (demo) */
+/* artículos compuestos: pegar piezas, validar pareja, rellenar kit y crear en Zoho */
 let kitActual = null;
 let parejasDatos = null;
 let parejasEstado = "listo";
 let parejasSub = [];
 let parejasSubsPendientes = [];
-
-function etiquetasPareja() {
-  return {
-    listo: t("js.ready"),
-    ya_tiene_kit: t("js.hasKit"),
-    incompleto: t("js.missing"),
-  };
-}
+const PAREJAS_ETIQUETA = {
+  listo: "Listos",
+  ya_tiene_kit: "Ya tienen kit",
+  incompleto: "Falta una pieza",
+};
 
 function textoPiezaPar(pieza, rol) {
-  if (!pieza) return rol === "condensadora" ? t("js.noCond") : t("js.noEvap");
+  if (!pieza) return `Sin ${rol}`;
   return pieza.sku || pieza.nombre || rol;
 }
 
@@ -2230,13 +2393,12 @@ function pintarChipsParejas() {
   const caja = $("comp-chips");
   if (!caja || !parejasDatos) return;
   const conteo = parejasDatos.conteo || {};
-  const labels = etiquetasPareja();
   caja.innerHTML = "";
-  [["", t("js.all"), parejasDatos.total], ...Object.entries(labels).map(([k, nom]) => [k, nom, conteo[k] || 0])].forEach(([tipo, nombre, n]) => {
+  [["", "Todas", parejasDatos.total], ...Object.entries(PAREJAS_ETIQUETA).map(([k, nom]) => [k, nom, conteo[k] || 0])].forEach(([tipo, nombre, n]) => {
     const chip = crear("button", `pend-chip${tipo === parejasEstado ? " activo" : ""}`);
     chip.type = "button";
     chip.setAttribute("aria-pressed", tipo === parejasEstado ? "true" : "false");
-    chip.append(document.createTextNode(nombre), crear("b", "", Number(n).toLocaleString(loc())));
+    chip.append(document.createTextNode(nombre), crear("b", "", Number(n).toLocaleString("es-CR")));
     chip.onclick = () => {
       parejasEstado = tipo;
       pintarChipsParejas();
@@ -2261,25 +2423,24 @@ function pintarListaParejas() {
   const caja = $("comp-lista");
   if (!caja) return;
   const lista = parejasVisibles();
-  const labels = etiquetasPareja();
   caja.innerHTML = "";
   $("comp-lista-conteo").textContent = parejasDatos
-    ? t("js.showing", { n: lista.length.toLocaleString(loc()), t: parejasDatos.total.toLocaleString(loc()) })
+    ? `Mostrando ${lista.length.toLocaleString("es-CR")} de ${parejasDatos.total.toLocaleString("es-CR")} parejas`
     : "";
   if (!lista.length) {
-    caja.append(crear("p", "nota", parejasDatos ? t("js.none") : t("js.loading")));
+    caja.append(crear("p", "nota", parejasDatos ? "No hay parejas con ese filtro." : "Cargando parejas…"));
     return;
   }
   lista.forEach((par) => {
     const fila = crear("article", `comp-par ${par.estado}`);
     const izq = crear("div");
     izq.append(crear("strong", "", par.sku_kit || par.base));
-    izq.append(crear("small", "", L(par.subfamilia) || "—"));
+    izq.append(crear("small", "", par.subfamilia || "Sin subfamilia"));
     const mid = crear("div");
-    mid.append(crear("small", "", `${textoPiezaPar(par.cond, "condensadora")} + ${textoPiezaPar(par.evap, "evaporadora")}`));
-    mid.append(crear("span", "comp-par-estado", labels[par.estado] || par.estado));
+    mid.append(crear("small", "", `${textoPiezaPar(par.cond, "pieza A")} + ${textoPiezaPar(par.evap, "pieza B")}`));
+    mid.append(crear("span", "comp-par-estado", PAREJAS_ETIQUETA[par.estado] || par.estado));
     const der = crear("div");
-    const boton = crear("button", "btn rojo", par.estado === "listo" ? t("js.build") : t("js.open"));
+    const boton = crear("button", "btn rojo", par.estado === "listo" ? "Armar" : "Abrir");
     boton.type = "button";
     boton.disabled = !par.cond && !par.evap;
     boton.onclick = () => armarDesdePar(par);
@@ -2292,24 +2453,29 @@ function pintarListaParejas() {
 function armarDesdePar(par) {
   const skus = [par.cond, par.evap].filter(Boolean).map((p) => p.sku).filter(Boolean);
   $("comp-pega").value = skus.join("\n");
+  $("comp-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   $("comp-pega").scrollIntoView({ behavior: "smooth", block: "center" });
   buscarCompuestos();
 }
 
 async function cargarParejas() {
   const fecha = $("comp-lista-fecha");
-  if (fecha) fecha.textContent = t("js.localRead");
+  if (fecha) fecha.textContent = "Leyendo parejas en los datos locales…";
   try {
     const respuesta = await fetch("/api/compuestos/parejas");
     const datos = await respuesta.json();
     if (!respuesta.ok || !datos.ok) {
-      if (fecha) fecha.textContent = datos.mensaje || t("js.localFail");
+      if (fecha) fecha.textContent = datos.mensaje || "No se pudieron armar las parejas.";
       return;
     }
     parejasDatos = datos;
     if (parejasEstado === "listo" && !(datos.conteo?.listo)) parejasEstado = "";
-    if (fecha) fecha.textContent = t("js.localOk");
-    armarDrop("drop-comp-sub", datos.subfamilias || [], t("js.all"), () => {
+    if (fecha) {
+      fecha.textContent = datos.fecha
+        ? `Se arma con los datos locales de ${new Date(datos.fecha).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })}. No gasta APIs.`
+        : "Se arma con los datos locales. No gasta APIs.";
+    }
+    armarDrop("drop-comp-sub", datos.subfamilias || [], "Todas las subfamilias", () => {
       parejasSub = drops["drop-comp-sub"]?.elegidas || [];
       pintarListaParejas();
     }, { buscar: true, todas: true, multiple: true });
@@ -2321,7 +2487,7 @@ async function cargarParejas() {
     pintarChipsParejas();
     pintarListaParejas();
   } catch {
-    if (fecha) fecha.textContent = t("js.localFail");
+    if (fecha) fecha.textContent = "No se pudieron leer las parejas. Revisá la conexión.";
   }
 }
 
@@ -2334,7 +2500,7 @@ $("comp-lista-buscar")?.addEventListener("input", pintarListaParejas);
 function colones(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return "—";
-  return `₡${x.toLocaleString(loc(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `₡${x.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function rellenarKitForm(kit) {
@@ -2373,19 +2539,19 @@ function pintarPiezas(piezas) {
     return;
   }
   caja.classList.remove("oculto");
-  caja.append(crear("h3", "opciones-titulo", t("js.pieces")));
+  caja.append(crear("h3", "opciones-titulo", "Piezas encontradas"));
   const tabla = crear("table", "comp-piezas");
   const cabeza = crear("tr");
-  [t("tbl.role"), "SKU", t("tbl.name"), t("tbl.qty"), t("tbl.price"), t("tbl.cost"), t("tbl.stock"), ""].forEach((txt) => cabeza.append(crear("th", "", txt)));
+  ["Rol", "SKU", "Nombre", "Cant.", "Precio", "Costo", "Stock", ""].forEach((t) => cabeza.append(crear("th", "", t)));
   const thead = crear("thead");
   thead.append(cabeza);
   tabla.append(thead);
   const cuerpo = crear("tbody");
   piezas.forEach((p, i) => {
     const fila = crear("tr");
-    fila.append(crear("td", "comp-rol", L(p.rol || "pieza")));
+    fila.append(crear("td", "comp-rol", p.rol || "pieza"));
     fila.append(crear("td", "", p.sku || "—"));
-    fila.append(crear("td", "", LLargo(p.nombre || "—")));
+    fila.append(crear("td", "", p.nombre || "—"));
     const cant = document.createElement("input");
     cant.type = "number";
     cant.min = "1";
@@ -2394,8 +2560,8 @@ function pintarPiezas(piezas) {
     cant.onchange = () => {
       const n = Number(cant.value);
       kitActual.piezas[i].cantidad = n > 0 ? n : 1;
-      const precio = kitActual.piezas.reduce((tot, x) => tot + Number(x.precio || 0) * Number(x.cantidad || 1), 0);
-      const costo = kitActual.piezas.reduce((tot, x) => tot + Number(x.costo || 0) * Number(x.cantidad || 1), 0);
+      const precio = kitActual.piezas.reduce((t, x) => t + Number(x.precio || 0) * Number(x.cantidad || 1), 0);
+      const costo = kitActual.piezas.reduce((t, x) => t + Number(x.costo || 0) * Number(x.cantidad || 1), 0);
       kitActual.kit.precio = Math.round(precio * 100) / 100;
       kitActual.kit.costo = Math.round(costo * 100) / 100;
       $("comp-precio").value = kitActual.kit.precio;
@@ -2410,13 +2576,13 @@ function pintarPiezas(piezas) {
     fila.append(crear("td", "", String(p.stock ?? "—")));
     const sacar = crear("button", "comp-sacar", "×");
     sacar.type = "button";
-    sacar.setAttribute("aria-label", t("ui.unmark"));
+    sacar.setAttribute("aria-label", "Quitar");
     sacar.onclick = () => {
       kitActual.piezas.splice(i, 1);
       if (kitActual.piezas.length < 2) {
         $("comp-form").classList.add("oculto");
         $("comp-previa").classList.add("oculto");
-        $("comp-validacion").textContent = t("js.need2");
+        $("comp-validacion").textContent = "Hacen falta mínimo dos artículos.";
         $("comp-validacion").className = "comp-validacion mal";
       }
       pintarPiezas(kitActual.piezas);
@@ -2444,10 +2610,10 @@ function pintarValidacion(kit) {
     caja.textContent = avisos.join(" ");
   } else if (kit.ok) {
     caja.classList.add("ok");
-    caja.textContent = t("js.okPair");
+    caja.textContent = "Se pueden asociar. El SKU es nuevo para este conjunto.";
   } else {
     caja.classList.add("mal");
-    caja.textContent = kit.mensaje || t("js.need2");
+    caja.textContent = kit.mensaje || "Revisá las piezas.";
   }
 }
 
@@ -2456,19 +2622,19 @@ function pintarPreviaKit(kit) {
   const piezas = kit.piezas || [];
   $("comp-previa").classList.remove("oculto");
   $("comp-previa-resumen").innerHTML = piezas.length >= 2
-    ? t("js.previewKit", { sku: form.sku || "—", n: piezas.length, min: Math.min(...piezas.map((p) => Number(p.stock) || 0)) })
-    : t("js.need2");
+    ? `El kit <b>${form.sku || "—"}</b> asocia ${piezas.length} piezas. Stock vendible: el mínimo (${Math.min(...piezas.map((p) => Number(p.stock) || 0))}).`
+    : "Hacen falta mínimo dos artículos.";
   const cabeza = $("comp-previa-cabeza");
   cabeza.innerHTML = "";
-  [t("tbl.role"), "SKU", t("tbl.name"), t("tbl.qty"), t("tbl.price"), t("tbl.cost"), t("tbl.stock")].forEach((txt) => cabeza.append(crear("th", "", txt)));
+  ["", "SKU", "Nombre", "Cant.", "Precio", "Costo", "Stock"].forEach((t) => cabeza.append(crear("th", "", t)));
   const filas = $("comp-previa-filas");
   filas.innerHTML = "";
   piezas.forEach((p) => {
     const fila = crear("tr");
     fila.append(
-      crear("td", "", L(p.rol || "pieza")),
+      crear("td", "", p.rol || "pieza"),
       crear("td", "", p.sku || "—"),
-      crear("td", "", LLargo(p.nombre || "—")),
+      crear("td", "", p.nombre || "—"),
       crear("td", "", String(p.cantidad || 1)),
       crear("td", "", colones(p.precio)),
       crear("td", "", colones(p.costo)),
@@ -2488,13 +2654,18 @@ function pintarPreviaKit(kit) {
   );
   filas.append(total);
   const llamadas = (kit.costo_api && kit.costo_api.llamadas) || (piezas.length + 1);
-  $("comp-costo-api").textContent = t("js.cost", { n: llamadas, p: piezas.length });
+  let texto = `Costo: ${llamadas} llamadas a la API de Zoho (${piezas.length} para confirmar las piezas y 1 para crear el kit). La búsqueda usó los datos locales, no gasta llamadas.`;
+  if (kit.restan != null) {
+    const despues = Math.max(0, Number(kit.restan) - llamadas);
+    texto += ` Quedan ${Number(kit.restan).toLocaleString("es-CR")}${kit.limite != null ? ` de ${Number(kit.limite).toLocaleString("es-CR")}` : ""} hoy; después quedarían unas ${despues.toLocaleString("es-CR")}.`;
+  }
+  $("comp-costo-api").textContent = texto;
   $("comp-crear").disabled = !kit.ok || piezas.length < 2;
 }
 
 async function buscarCompuestos() {
   const texto = $("comp-pega").value;
-  $("comp-estado").textContent = t("js.searching");
+  $("comp-estado").textContent = "Buscando en los datos locales…";
   $("comp-buscar").disabled = true;
   try {
     const respuesta = await fetch("/api/compuestos/buscar", {
@@ -2506,8 +2677,8 @@ async function buscarCompuestos() {
     kitActual = datos;
     kitActual.piezas = datos.piezas || [];
     $("comp-estado").textContent = datos.encontradas
-      ? t("js.found", { n: datos.encontradas })
-      : (datos.mensaje || t("js.noneFound"));
+      ? `Se encontraron ${datos.encontradas} artículo${datos.encontradas === 1 ? "" : "s"} en los datos${datos.fecha ? ` de ${new Date(datos.fecha).toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })}` : ""}.`
+      : (datos.mensaje || "No se encontró ninguno.");
     pintarPiezas(kitActual.piezas);
     if (kitActual.piezas.length >= 2) {
       $("comp-form").classList.remove("oculto");
@@ -2523,66 +2694,74 @@ async function buscarCompuestos() {
       }
     }
   } catch {
-    $("comp-estado").textContent = t("js.searchFail");
+    $("comp-estado").textContent = "No se pudo buscar. Revisá la conexión.";
   } finally {
     $("comp-buscar").disabled = false;
   }
 }
 
-$("comp-buscar")?.addEventListener("click", buscarCompuestos);
-$("comp-pega")?.addEventListener("paste", () => setTimeout(buscarCompuestos, 0));
-$("comp-limpiar")?.addEventListener("click", () => {
+$("comp-buscar").onclick = buscarCompuestos;
+$("comp-pega").addEventListener("paste", () => setTimeout(buscarCompuestos, 0));
+$("comp-limpiar").onclick = () => {
   kitActual = null;
   $("comp-pega").value = "";
   $("comp-estado").textContent = "";
   $("comp-hallados").classList.add("oculto");
   $("comp-form").classList.add("oculto");
   $("comp-previa").classList.add("oculto");
-});
+};
 ["comp-nombre", "comp-sku", "comp-unidad", "comp-familia", "comp-subfamilia", "comp-precio", "comp-costo", "comp-desc"].forEach((id) => {
-  $(id)?.addEventListener("input", () => {
+  $(id).addEventListener("input", () => {
     $(id).parentElement?.classList.toggle("cambiado", Boolean($(id).value.trim()));
     if (kitActual) pintarPreviaKit(kitActual);
   });
 });
-$("comp-excel")?.addEventListener("click", async () => {
+$("comp-excel").onclick = async () => {
   if (!kitActual || (kitActual.piezas || []).length < 2) return;
   const respuesta = await fetch("/api/compuestos.xlsx", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ piezas: kitActual.piezas, kit: kitDesdeForm() }),
+    body: JSON.stringify({
+      piezas: kitActual.piezas,
+      kit: kitDesdeForm(),
+    }),
   });
   if (!respuesta.ok) {
-    avisar(t("js.createFail"), t("js.searchFail"), [], { error: true });
+    avisar("No se pudo armar el Excel", "Revisá la conexión e intentá de nuevo.", [], { error: true });
     return;
   }
   const sku = kitDesdeForm().sku || "kit";
   const enlace = document.createElement("a");
   enlace.href = URL.createObjectURL(await respuesta.blob());
-  enlace.download = `kit-${sku}.txt`;
+  enlace.download = `kit-${sku}.xlsx`;
   enlace.click();
   setTimeout(() => URL.revokeObjectURL(enlace.href), 2000);
-});
-$("comp-crear")?.addEventListener("click", async () => {
+};
+$("comp-crear").onclick = async () => {
   if (!kitActual || (kitActual.piezas || []).length < 2) return;
   if (!kitActual.ok) {
-    avisar(t("js.createFail"), kitActual.mensaje || t("js.need2"), kitActual.errores || []);
+    avisar("No se puede crear el kit", kitActual.mensaje || "Esas piezas no se pueden asociar.", kitActual.errores || []);
     return;
   }
   const form = kitDesdeForm();
   if (!form.nombre || !form.sku) {
-    avisar(t("js.createFail"), t("js.needName"));
+    avisar("Faltan datos", "El kit necesita nombre y un SKU nuevo.");
     return;
   }
+  const llamadas = (kitActual.costo_api && kitActual.costo_api.llamadas) || (kitActual.piezas.length + 1);
   const ok = await confirmarAviso(
-    t("js.createT"),
-    t("js.createP", { sku: form.sku, name: form.nombre, parts: kitActual.piezas.map((p) => p.sku).join(" + ") }),
-    [],
-    t("js.createYes"),
+    "Crear kit en Zoho",
+    `Se va a crear el artículo compuesto ${form.sku} (${form.nombre}) asociando ${kitActual.piezas.map((p) => p.sku).join(" + ")}. Las piezas sueltas no se editan.`,
+    [
+      `Tipo Kit, no ensamblaje.`,
+      `Costo: ${llamadas} llamadas a la API.`,
+      "Aplica tienda queda en No.",
+    ],
+    "Sí, crear",
   );
   if (!ok) return;
   $("comp-crear").disabled = true;
-  $("comp-estado").textContent = t("js.creating");
+  $("comp-estado").textContent = "Creando el kit en Zoho…";
   try {
     const respuesta = await fetch("/api/compuestos", {
       method: "POST",
@@ -2595,119 +2774,1096 @@ $("comp-crear")?.addEventListener("click", async () => {
     });
     const datos = await respuesta.json();
     if (!respuesta.ok || !datos.ok) {
-      avisar(t("js.createFail"), datos.mensaje || t("js.createFail"), [], { error: true });
-      $("comp-estado").textContent = datos.mensaje || t("js.createFail");
+      avisar("No se pudo crear el kit", datos.mensaje || "Zoho no guardó el compuesto.", [], { error: true });
+      $("comp-estado").textContent = datos.mensaje || "No se pudo crear.";
       return;
     }
-    mostrarToast(t("js.createT"), t("js.created", { sku: datos.item.sku }));
-    $("comp-estado").textContent = t("js.created", { sku: datos.item.sku });
+    const consumo = datos.consumo != null ? datos.consumo : datos.llamadas;
+    mostrarToast("Kit creado en Zoho", `${datos.item.sku} · ${consumo} APIs${datos.restan != null ? ` · quedan ${Number(datos.restan).toLocaleString("es-CR")}` : ""}`);
+    $("comp-estado").textContent = `Listo: ${datos.item.sku} ya está en Zoho.`;
     kitActual.ok = false;
     $("comp-crear").disabled = true;
     parejasDatos = null;
     cargarParejas();
   } catch {
-    avisar(t("js.createFail"), t("js.searchFail"), [], { error: true });
+    avisar("No se pudo crear el kit", "No se pudo hablar con el servidor.", [], { error: true });
   } finally {
     $("comp-crear").disabled = Boolean(!kitActual || !kitActual.ok);
   }
-});
+};
 
-let paginaIdioma = null;
-let idiomaAnimando = false;
+let cxcFilas = [];
+let cxcMesSel = null;
+let cxcTiempoSel = null;
+let cxcMontoSel = "todos";
+const CXC_MONTO = [
+  { id: "todos", label: "Todos" },
+  { id: "cero", label: "Los que tengan 0" },
+  { id: "negativo", label: "Negativo" },
+  { id: "menos", label: "Menos de…" },
+  { id: "mas", label: "Más de…" },
+];
+const CXC_BUCLE = [
+  { id: "no", label: "No repetir" },
+  { id: "hora", label: "Cada hora" },
+  { id: "dia", label: "Cada día" },
+  { id: "semana", label: "Cada semana" },
+  { id: "mes", label: "Cada mes" },
+];
+const CXC_DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+const CXC_PLANTILLA_DEFECTO = {
+  asunto: "Estado de cuenta",
+  cuerpo: "Hola:\n\nEste es un mensaje de muestra. El PDF y el listado van en el mismo correo, juntos.\n\nSaludos.\n\nEquipo de muestra",
+};
+let cxcBucleSel = "no";
+let cxcBucleDia = 0;
+let cxcBucleOrigen = "zoho";
+const MESES_CXC = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-function reducidaMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function cxcIso(fecha) {
+  const y = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, "0");
+  const d = String(fecha.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
-function bloquearIdioma(si) {
-  document.querySelectorAll(".btn-idioma").forEach((btn) => {
-    btn.disabled = Boolean(si);
-    btn.setAttribute("aria-busy", si ? "true" : "false");
+function cxcDiaDelMes(year, month0, dia) {
+  const ultimo = new Date(year, month0 + 1, 0).getDate();
+  return Math.min(dia, ultimo);
+}
+
+function cxcOpcionesIzq() {
+  const hoy = new Date();
+  const lista = [{ tipo: "anio", label: "Año" }];
+  for (let i = 0; i < 12; i += 1) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const anio = d.getFullYear() !== hoy.getFullYear() ? ` ${d.getFullYear()}` : "";
+    lista.push({
+      tipo: "mes",
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      label: `${MESES_CXC[d.getMonth()]}${anio}`,
+    });
+  }
+  return lista;
+}
+
+function cxcLimitesMes(sel) {
+  const hoy = new Date();
+  const actual = sel && sel.tipo === "mes" && sel.year === hoy.getFullYear() && sel.month === hoy.getMonth();
+  const inicio = new Date(sel.year, sel.month, 1);
+  const fin = actual ? hoy : new Date(sel.year, sel.month + 1, 0);
+  return { actual, inicio, fin, desde: cxcIso(inicio), hasta: cxcIso(fin) };
+}
+
+function cxcLabelRango(desde, hasta) {
+  const a = String(desde || "").split("-").map(Number);
+  const b = String(hasta || "").split("-").map(Number);
+  if (a.length < 3 || b.length < 3 || !a[0] || !b[0]) return "Rango personalizado";
+  const d1 = a[2];
+  const d2 = b[2];
+  const m1 = MESES_CXC[a[1] - 1];
+  const m2 = MESES_CXC[b[1] - 1];
+  if (a[0] === b[0] && a[1] === b[1]) return `${d1} al ${d2} de ${m1}`;
+  if (a[0] === b[0]) return `${d1} de ${m1} al ${d2} de ${m2}`;
+  return `${d1} de ${m1} ${a[0]} al ${d2} de ${m2} ${b[0]}`;
+}
+
+function cxcOpcionesDer(sel) {
+  const hoy = new Date();
+  if (!sel || sel.tipo === "anio") {
+    const ops = [];
+    for (let y = hoy.getFullYear(); y >= 2023; y -= 1) {
+      const inicio = new Date(y, 0, 1);
+      const fin = y === hoy.getFullYear() ? hoy : new Date(y, 11, 31);
+      ops.push({
+        modo: "anio",
+        label: y === hoy.getFullYear() ? `${y} (este año)` : String(y),
+        desde: cxcIso(inicio),
+        hasta: cxcIso(fin),
+      });
+    }
+    return ops;
+  }
+  const lim = cxcLimitesMes(sel);
+  const ops = [];
+  if (lim.actual) {
+    const prev = new Date(sel.year, sel.month - 1, cxcDiaDelMes(sel.year, sel.month - 1, hoy.getDate()));
+    ops.push({
+      modo: "mes",
+      label: `Hasta hoy (1 al ${hoy.getDate()} de ${MESES_CXC[sel.month]})`,
+      desde: lim.desde,
+      hasta: lim.hasta,
+    });
+    ops.push({
+      modo: "corrido",
+      label: `${prev.getDate()} de ${MESES_CXC[prev.getMonth()]} al ${hoy.getDate()} de ${MESES_CXC[sel.month]}`,
+      desde: cxcIso(prev),
+      hasta: lim.hasta,
+    });
+  } else {
+    ops.push({
+      modo: "mes",
+      label: `Todo ${MESES_CXC[sel.month]}`,
+      desde: lim.desde,
+      hasta: lim.hasta,
+    });
+  }
+  ops.push({
+    modo: "personalizado",
+    label: "Rango personalizado",
+    desde: lim.desde,
+    hasta: lim.hasta,
+  });
+  return ops;
+}
+
+function cxcMostrarRango(sel) {
+  const caja = $("cxc-rango-caja");
+  if (!caja) return;
+  const personalizado = Boolean(sel && sel.modo === "personalizado");
+  caja.classList.toggle("oculto", !personalizado);
+  if (!personalizado) return;
+  const desde = $("cxc-desde");
+  const hasta = $("cxc-hasta");
+  if (desde) desde.value = sel.desde || "";
+  if (hasta) hasta.value = sel.hasta || "";
+}
+
+function cxcRango() {
+  const izq = cxcOpcionesIzq();
+  const base = cxcTiempoSel || cxcOpcionesDer(cxcMesSel || izq.find((x) => x.tipo === "mes") || izq[0])[0];
+  if (base.modo !== "personalizado") return base;
+  const desde = $("cxc-desde")?.value || base.desde;
+  const hasta = $("cxc-hasta")?.value || base.hasta;
+  return { ...base, desde, hasta, label: cxcLabelRango(desde, hasta) };
+}
+
+function cxcPeriodoTexto() {
+  return cxcRango().label;
+}
+
+function cxcRangoValido() {
+  const rango = cxcRango();
+  if (!rango.desde || !rango.hasta) {
+    avisar("Faltan fechas", "Poné desde y hasta para el rango personalizado.", [], { error: true });
+    return null;
+  }
+  if (rango.desde > rango.hasta) {
+    avisar("Rango al revés", "La fecha de inicio no puede ser después de la de fin.", [], { error: true });
+    return null;
+  }
+  return rango;
+}
+
+let cxcBucleCorriendo = null;
+
+function cxcGuardarSiHayBucle() {
+  pintarEstadoBucle();
+}
+
+function iniciarFiltrosCxc() {
+  if (!$("drop-cxc-mes")) return;
+  const izq = cxcOpcionesIzq();
+  if (!cxcMesSel) cxcMesSel = izq.find((x) => x.tipo === "mes") || izq[0];
+  else {
+    cxcMesSel = izq.find((x) => (
+      (cxcMesSel.tipo === "anio" && x.tipo === "anio")
+      || (x.tipo === "mes" && x.year === cxcMesSel.year && x.month === cxcMesSel.month)
+    )) || cxcMesSel;
+  }
+  const armarTiempo = (reset) => {
+    const esAnio = cxcMesSel.tipo === "anio";
+    if ($("cxc-tiempo-etiqueta")) $("cxc-tiempo-etiqueta").textContent = esAnio ? "Año" : "Tiempo";
+    const ops = cxcOpcionesDer(cxcMesSel);
+    if (reset || !cxcTiempoSel) cxcTiempoSel = ops[0];
+    else {
+      cxcTiempoSel = ops.find((o) => o.modo === cxcTiempoSel.modo && o.desde === cxcTiempoSel.desde)
+        || ops.find((o) => o.label === cxcTiempoSel.label)
+        || ops[0];
+    }
+    cxcMostrarRango(cxcTiempoSel);
+    armarDrop("drop-cxc-tiempo", ops.map((o) => o.label), cxcTiempoSel.label, (valor) => {
+      cxcTiempoSel = ops.find((o) => o.label === valor) || ops[0];
+      cxcMostrarRango(cxcTiempoSel);
+      cxcGuardarSiHayBucle();
+    }, { arriba: true });
+  };
+  armarDrop("drop-cxc-mes", izq.map((m) => m.label), cxcMesSel.label, (valor) => {
+    cxcMesSel = izq.find((m) => m.label === valor) || izq[0];
+    armarTiempo(true);
+    cxcGuardarSiHayBucle();
+  }, { arriba: true });
+  armarTiempo(false);
+  if (!$("drop-cxc-monto")) return;
+  const monto = CXC_MONTO.find((o) => o.id === cxcMontoSel) || CXC_MONTO[0];
+  const pide = cxcMontoSel === "menos" || cxcMontoSel === "mas";
+  $("cxc-monto-caja")?.classList.toggle("oculto", !pide);
+  if ($("cxc-monto-valor-etiqueta")) {
+    $("cxc-monto-valor-etiqueta").textContent = cxcMontoSel === "menos" ? "Menos de" : "Más de";
+  }
+  armarDrop("drop-cxc-monto", CXC_MONTO.map((o) => o.label), monto.label, (valor) => {
+    cxcMontoSel = (CXC_MONTO.find((o) => o.label === valor) || CXC_MONTO[0]).id;
+    const pideMonto = cxcMontoSel === "menos" || cxcMontoSel === "mas";
+    $("cxc-monto-caja")?.classList.toggle("oculto", !pideMonto);
+    if ($("cxc-monto-valor-etiqueta")) {
+      $("cxc-monto-valor-etiqueta").textContent = cxcMontoSel === "menos" ? "Menos de" : "Más de";
+    }
+    pintarCxc();
+    cxcGuardarSiHayBucle();
+  }, { arriba: true });
+  if ($("cxc-monto-valor")) {
+    $("cxc-monto-valor").oninput = () => {
+      pintarCxc();
+      cxcGuardarSiHayBucle();
+    };
+  }
+  if ($("cxc-desde")) $("cxc-desde").onchange = () => cxcGuardarSiHayBucle();
+  if ($("cxc-hasta")) $("cxc-hasta").onchange = () => cxcGuardarSiHayBucle();
+  if ($("cxc-solo-pendiente")) $("cxc-solo-pendiente").onchange = () => cxcGuardarSiHayBucle();
+}
+
+function cxcMontoTexto() {
+  if (cxcMontoSel === "cero") return "saldo 0";
+  if (cxcMontoSel === "negativo") return "saldo negativo";
+  const n = String($("cxc-monto-valor")?.value || "").trim();
+  if (cxcMontoSel === "menos") return n ? `menos de ${n}` : "menos de (sin monto)";
+  if (cxcMontoSel === "mas") return n ? `más de ${n}` : "más de (sin monto)";
+  return "todos los montos";
+}
+
+function cxcBucleCuerpo() {
+  const rango = cxcRango() || {};
+  return {
+    cada: cxcBucleSel,
+    dia: cxcBucleDia,
+    hora: $("cxc-bucle-hora")?.value || "08:00",
+    origen: cxcBucleOrigen,
+    periodo: rango.modo || "anio",
+    desde: rango.desde || "",
+    hasta: rango.hasta || "",
+    periodo_texto: rango.label || "",
+    solo_pendiente: Boolean($("cxc-solo-pendiente")?.checked),
+    monto_sel: cxcMontoSel || "todos",
+    monto_valor: $("cxc-monto-valor")?.value || "",
+  };
+}
+
+function cxcFmtProxima(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("es-CR", {
+    weekday: "long", day: "numeric", month: "short",
+    hour: "2-digit", minute: "2-digit",
   });
 }
 
-function refrescarTextosJs() {
-  Object.values(drops).forEach((d) => d.repintar?.());
-  if (catalogoFiltros.length) refrescarFiltro();
-  if ($("menu-lugar") && window.__DEMO_MASIVO__) $("menu-lugar").textContent = t("menu.placeDemo");
-  const badge = $("estado-servidor");
-  if (badge && window.__DEMO_MASIVO__) badge.innerHTML = `<i></i>${t("ui.demoLocal")}`;
-  if (parejasDatos) {
-    pintarChipsParejas();
-    pintarListaParejas();
-  }
-  if (kitActual) {
-    if (kitActual.piezas?.length) pintarPiezas(kitActual.piezas);
-    if (kitActual.piezas?.length >= 2) {
-      pintarValidacion(kitActual);
-      pintarPreviaKit(kitActual);
-    }
-  }
-  if (ultimaPrevia && !$("previa-modal")?.classList.contains("oculto")) pintarVistaPrevia(ultimaPrevia);
-  const miga = $("miga");
-  const activo = document.querySelector(".item.activo .item-texto");
-  if (miga && activo) miga.textContent = activo.textContent.trim();
+function pintarCajaBucle() {
+  const pide = cxcBucleSel !== "no";
+  $("cxc-bucle-caja")?.classList.toggle("oculto", !pide || cxcBucleSel === "hora");
+  $("cxc-bucle-dia-caja")?.classList.toggle("oculto", cxcBucleSel !== "semana" && cxcBucleSel !== "mes");
+  $("cxc-bucle-hora-caja")?.classList.toggle("oculto", cxcBucleSel === "hora" || !pide);
 }
 
-function mostrarEntrada(pagina) {
-  if (!pagina) return;
-  pagina.classList.remove("oculto", "entra", "entra-split");
-  void pagina.offsetWidth;
-  pagina.classList.add("entra");
+function armarDiaBucle() {
+  if (!$("drop-cxc-bucle-dia")) return;
+  const esMes = cxcBucleSel === "mes";
+  const ops = esMes ? Array.from({ length: 31 }, (_, i) => String(i + 1)) : CXC_DIAS;
+  if (esMes && (cxcBucleDia < 1 || cxcBucleDia > 31)) cxcBucleDia = 1;
+  if (!esMes && (cxcBucleDia < 0 || cxcBucleDia > 6)) cxcBucleDia = 0;
+  const inicial = esMes ? String(cxcBucleDia || 1) : (CXC_DIAS[cxcBucleDia] || CXC_DIAS[0]);
+  armarDrop("drop-cxc-bucle-dia", ops, inicial, (valor) => {
+    cxcBucleDia = esMes ? Number(valor) : CXC_DIAS.indexOf(valor);
+    if (cxcBucleDia < 0) cxcBucleDia = 0;
+    pintarEstadoBucle();
+  }, { arriba: true });
 }
 
-document.addEventListener("idioma-cambiando", () => {
-  idiomaAnimando = true;
-  bloquearIdioma(true);
-  paginaIdioma = document.querySelector("main > .pagina:not(.oculto)");
-});
+function cxcBucleDifiere() {
+  const corriendo = cxcBucleCorriendo;
+  if (!corriendo?.activo) return cxcBucleSel !== "no";
+  const cuerpo = cxcBucleCuerpo();
+  return cuerpo.cada !== (corriendo.cada || "no")
+    || Number(cuerpo.dia) !== Number(corriendo.dia || 0)
+    || String(cuerpo.hora || "") !== String(corriendo.hora || "08:00")
+    || String(cuerpo.periodo || "") !== String(corriendo.periodo || "")
+    || String(cuerpo.desde || "") !== String(corriendo.desde || "")
+    || String(cuerpo.hasta || "") !== String(corriendo.hasta || "")
+    || String(cuerpo.monto_sel || "todos") !== String(corriendo.monto_sel || "todos")
+    || String(cuerpo.monto_valor || "") !== String(corriendo.monto_valor || "")
+    || Boolean(cuerpo.solo_pendiente) !== Boolean(corriendo.solo_pendiente);
+}
 
-document.addEventListener("idioma-cambiado", async (evento) => {
-  const animar = Boolean(evento.detail?.animar);
-  refrescarTextosJs();
-  const pagina = paginaIdioma || document.querySelector("main > .pagina:not(.oculto)");
-  const id = pagina?.id;
-  const tareas = [];
-  if ($("app") && !$("app").classList.contains("oculto")) {
-    if (id === "inicio") tareas.push(cargarPendientes());
-    if (id === "historial") tareas.push(cargarHistorial(false));
-    else if (historialDatos.length) pintarHistorial();
-    if (id === "compuestos") tareas.push(cargarParejas());
-  }
-  if (!animar) {
-    idiomaAnimando = false;
-    bloquearIdioma(false);
+function pintarEstadoBucle() {
+  const boton = $("cxc-bucle-confirmar");
+  const pide = cxcBucleSel !== "no" && cxcBucleDifiere();
+  boton?.classList.toggle("oculto", !pide);
+  if (!cxcBucleCorriendo?.activo) {
+    const p = $("cxc-bucle-resumen");
+    if (p) p.textContent = pide ? "Todavía no envía. Confirmá el inicio para que salga a esa hora." : "";
     return;
   }
-
-  const carga = Promise.all(tareas).catch(() => {});
-  let usoSkeleton = false;
-  let timerSkeleton = null;
-  if (!reducidaMotion() && tareas.length) {
-    timerSkeleton = setTimeout(() => {
-      if (!pagina || pagina.classList.contains("oculto")) return;
-      usoSkeleton = true;
-      pagina.classList.add("oculto");
-      pagina.classList.remove("entra", "entra-split");
-      $("esqueleto")?.classList.remove("oculto");
-    }, 380);
+  if (pide) {
+    const p = $("cxc-bucle-resumen");
+    if (p) p.textContent = "Sigue el bucle ya confirmado. Estos cambios no salen hasta que confirmes de nuevo.";
+    return;
   }
-  await carga;
-  if (timerSkeleton) clearTimeout(timerSkeleton);
-  $("esqueleto")?.classList.add("oculto");
+  mostrarResumenBucle(cxcBucleCorriendo);
+}
 
-  const login = $("login");
-  if (login && !login.classList.contains("oculto")) {
-    login.classList.remove("idioma-espera");
-    const vidrio = login.querySelector(".vidrio");
-    if (vidrio) {
-      vidrio.classList.remove("aparece");
-      void vidrio.offsetWidth;
-      vidrio.classList.add("aparece");
+function mostrarResumenBucle(datos) {
+  const p = $("cxc-bucle-resumen");
+  if (!p) return;
+  if (!datos?.activo) {
+    p.textContent = "";
+    return;
+  }
+  const cuando = cxcFmtProxima(datos.proxima);
+  const filtros = datos.filtros || [cxcPeriodoTexto(), cxcMontoTexto()].filter(Boolean).join(" · ");
+  p.textContent = `${datos.texto || "Bucle activo"}${filtros ? ` · ${filtros}` : ""}. Envía el correo (PDF y listado) a esas cuentas${cuando ? ` · próxima ${cuando}` : ""}.`;
+  if (datos.error) p.textContent += ` Último error: ${datos.error}`;
+}
+
+async function guardarBucleCxc(confirmar) {
+  if (!$("drop-cxc-bucle")) return null;
+  const datos = await cxcLeer(await fetch("/api/cxc/bucle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...cxcBucleCuerpo(), confirmar: Boolean(confirmar) }),
+  }));
+  cxcBucleCorriendo = datos.activo ? datos : null;
+  pintarBucleGlobal(datos);
+  mostrarResumenBucle(datos);
+  pintarEstadoBucle();
+  return datos;
+}
+
+async function confirmarInicioBucle() {
+  if (cxcBucleSel === "no") return;
+  if ((cxcMontoSel === "menos" || cxcMontoSel === "mas") && !String($("cxc-monto-valor")?.value || "").trim()) {
+    avisar("Falta el monto", "Poné la cantidad de Más de / Menos de antes de confirmar el bucle.", [], { error: true });
+    return;
+  }
+  const boton = $("cxc-bucle-confirmar");
+  if (boton) boton.disabled = true;
+  try {
+    await guardarBucleCxc(true);
+    mostrarToast("Bucle confirmado", "A esa hora se envían los estados de cuenta. Arriba a la derecha queda marcado.");
+  } catch (err) {
+    avisar("No se pudo iniciar", err.message || "No se pudo hablar con el servidor.", [], { error: true });
+  } finally {
+    if (boton) boton.disabled = false;
+  }
+}
+
+function cxcSelDesdePlan(plan) {
+  if (!plan) return;
+  if (plan.solo_pendiente != null && $("cxc-solo-pendiente")) {
+    $("cxc-solo-pendiente").checked = Boolean(plan.solo_pendiente);
+  }
+  if (plan.monto_sel) cxcMontoSel = plan.monto_sel;
+  if ($("cxc-monto-valor") && plan.monto_valor != null && plan.monto_valor !== "") {
+    $("cxc-monto-valor").value = plan.monto_valor;
+  }
+  const desde = String(plan.desde || "");
+  const [y, m] = desde.split("-").map(Number);
+  const izq = cxcOpcionesIzq();
+  if (plan.periodo === "anio") {
+    cxcMesSel = izq.find((x) => x.tipo === "anio") || izq[0];
+    const ops = cxcOpcionesDer(cxcMesSel);
+    cxcTiempoSel = ops.find((o) => o.desde && o.desde.startsWith(String(y || ""))) || ops[0];
+  } else if (y && m) {
+    cxcMesSel = izq.find((x) => x.tipo === "mes" && x.year === y && x.month === m - 1)
+      || izq.find((x) => x.tipo === "mes")
+      || izq[0];
+    const ops = cxcOpcionesDer(cxcMesSel);
+    if (plan.periodo === "personalizado") {
+      cxcTiempoSel = ops.find((o) => o.modo === "personalizado") || ops[ops.length - 1];
+      if ($("cxc-desde")) $("cxc-desde").value = plan.desde || "";
+      if ($("cxc-hasta")) $("cxc-hasta").value = plan.hasta || "";
+    } else {
+      cxcTiempoSel = ops.find((o) => o.desde === plan.desde && o.hasta === plan.hasta) || ops[0];
     }
   }
-  if (pagina) mostrarEntrada(pagina);
-  paginaIdioma = null;
-  idiomaAnimando = false;
-  bloquearIdioma(false);
+}
+
+function pintarDropBucle() {
+  const actual = CXC_BUCLE.find((o) => o.id === cxcBucleSel) || CXC_BUCLE[0];
+  armarDrop("drop-cxc-bucle", CXC_BUCLE.map((o) => o.label), actual.label, onBucleCxcElegir, { arriba: true });
+}
+
+async function onBucleCxcElegir(valor) {
+  const nuevo = (CXC_BUCLE.find((o) => o.label === valor) || CXC_BUCLE[0]).id;
+  cxcBucleSel = nuevo;
+  if (cxcBucleSel === "mes" && (cxcBucleDia < 1 || cxcBucleDia > 31)) cxcBucleDia = 1;
+  if (cxcBucleSel === "semana" && (cxcBucleDia < 0 || cxcBucleDia > 6)) cxcBucleDia = 0;
+  pintarCajaBucle();
+  armarDiaBucle();
+  if (cxcBucleSel === "no") {
+    if (cxcBucleCorriendo?.activo) {
+      try {
+        await guardarBucleCxc(false);
+      } catch (err) {
+        if ($("cxc-bucle-resumen")) $("cxc-bucle-resumen").textContent = err.message || "No se pudo apagar el bucle.";
+      }
+    } else {
+      cxcBucleCorriendo = null;
+      pintarBucleGlobal({ activo: false });
+      pintarEstadoBucle();
+    }
+    return;
+  }
+  pintarEstadoBucle();
+}
+
+async function iniciarBucleCxc() {
+  if (!$("drop-cxc-bucle")) return;
+  let guardado = { cada: "no", dia: 0, hora: "08:00", activo: false };
+  try {
+    guardado = await cxcLeer(await fetch("/api/cxc/bucle"));
+  } catch {
+    /* primera vez */
+  }
+  cxcBucleSel = guardado.activo ? (guardado.cada || "no") : "no";
+  cxcBucleDia = Number(guardado.dia || 0);
+  cxcBucleOrigen = guardado.origen || "zoho";
+  cxcBucleCorriendo = guardado.activo ? guardado : null;
+  if ($("cxc-bucle-hora")) $("cxc-bucle-hora").value = guardado.hora || "08:00";
+  if (guardado.activo) cxcSelDesdePlan(guardado);
+  iniciarFiltrosCxc();
+  pintarDropBucle();
+  pintarCajaBucle();
+  armarDiaBucle();
+  if ($("cxc-bucle-hora")) $("cxc-bucle-hora").onchange = () => pintarEstadoBucle();
+  pintarBucleGlobal(guardado);
+  pintarEstadoBucle();
+}
+
+if ($("cxc-bucle-confirmar")) $("cxc-bucle-confirmar").onclick = () => confirmarInicioBucle();
+
+async function cxcLeer(respuesta) {
+  const texto = await respuesta.text();
+  let datos = {};
+  try {
+    datos = texto ? JSON.parse(texto) : {};
+  } catch {
+    const html = /<!DOCTYPE|<html[\s>]/i.test(texto || "");
+    const corte = [502, 504, 520, 521, 522, 523, 524, 525, 526, 530].includes(respuesta.status);
+    const extra = (html || corte)
+      ? "La espera se cortó (no es un error de Zoho). Volvé a intentar; si es una foto, a veces tarda un rato."
+      : ((texto || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 180) || `Error ${respuesta.status}`);
+    throw new Error(extra);
+  }
+  if (!respuesta.ok || datos.ok === false) {
+    throw new Error(datos.mensaje || `Error ${respuesta.status}`);
+  }
+  return datos;
+}
+
+async function esperarTrabajoCxc(mensaje) {
+  while (true) {
+    await new Promise((r) => setTimeout(r, 800));
+    const st = await cxcLeer(await fetch("/api/cxc/trabajo"));
+    pintarCxcLeyendo(st.activo ? st : { activo: false });
+    if (st.activo) continue;
+    if (st.error) throw new Error(st.error);
+    if (!st.datos || !st.datos.ok) throw new Error((st.datos && st.datos.mensaje) || mensaje);
+    return st.datos;
+  }
+}
+
+function cxcEtiqueta(estado) {
+  return {
+    listo: "Lista para enviar correo + PDF + listado",
+    cambiar: "Al confirmar, se guarda este correo en CXC",
+    igual: "Ese correo ya está en CXC",
+    sin_cuenta: "No encontramos esa empresa en Zoho",
+    sin_correo: "No hay correo para enviar",
+    sin_campo: "Esa cuenta no tiene el campo CXC",
+  }[estado] || estado;
+}
+
+function cxcPlata(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "—";
+  return num.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function cxcVerCelda(texto, alClick) {
+  const td = crear("td", "cxc-ver-td");
+  if (!alClick) {
+    td.textContent = "—";
+    return td;
+  }
+  const btn = crear("button", "cxc-ver", texto);
+  btn.type = "button";
+  btn.onclick = alClick;
+  td.append(btn);
+  return td;
+}
+
+async function verPdfCxc(fila) {
+  const rango = cxcRango();
+  const q = new URLSearchParams({
+    id: fila.contact_id,
+    empresa: fila.cuenta || fila.empresa || "",
+    periodo: rango.modo || "mes",
+    desde: rango.desde,
+    hasta: rango.hasta,
+  });
+  try {
+    const respuesta = await fetch(`/api/cxc/pdf?${q}`);
+    const tipo = respuesta.headers.get("content-type") || "";
+    if (!respuesta.ok || !tipo.includes("pdf")) {
+      const datos = await respuesta.json().catch(() => ({}));
+      avisar("No se pudo abrir el PDF", datos.mensaje || "Zoho no devolvió el estado de cuenta.", [], { error: true });
+      return;
+    }
+    const blob = await respuesta.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener");
+  } catch {
+    avisar("No se pudo abrir el PDF", "No se pudo hablar con el servidor.", [], { error: true });
+  }
+}
+
+async function verListadoCxc(fila) {
+  $("cxc-listado-titulo").textContent = fila.cuenta || fila.empresa || "Listado pendiente";
+  $("cxc-listado-resumen").textContent = "Cargando facturas pendientes…";
+  $("cxc-listado-filas").innerHTML = "";
+  $("cxc-listado-modal").classList.remove("oculto");
+  try {
+    const rango = cxcRango();
+    const respuesta = await fetch(`/api/cxc/listado?id=${encodeURIComponent(fila.contact_id)}&periodo=${encodeURIComponent(rango.modo || "mes")}&desde=${encodeURIComponent(rango.desde)}&hasta=${encodeURIComponent(rango.hasta)}`);
+    const datos = await respuesta.json();
+    if (!respuesta.ok || !datos.ok) {
+      $("cxc-listado-resumen").textContent = datos.mensaje || "No se pudo leer el listado.";
+      return;
+    }
+    const n = (datos.facturas || []).length;
+    $("cxc-listado-resumen").textContent = `${datos.cuenta || fila.cuenta || "Esta empresa"} · ${datos.periodo_texto || cxcPeriodoTexto()} · de ${datos.desde || ""} a ${datos.hasta || ""} · solo pendiente · ${n} factura${n === 1 ? "" : "s"}`;
+    const cuerpo = $("cxc-listado-filas");
+    if (!n) {
+      const tr = crear("tr");
+      const td = crear("td", "", "No hay facturas pendientes en Zoho para esta empresa.");
+      td.colSpan = 6;
+      tr.append(td);
+      cuerpo.append(tr);
+      return;
+    }
+    datos.facturas.forEach((fac) => {
+      const tr = crear("tr");
+      tr.append(
+        crear("td", "", fac.numero || "—"),
+        crear("td", "", fac.fecha || "—"),
+        crear("td", "", fac.vence || "—"),
+        crear("td", "", cxcPlata(fac.total)),
+        crear("td", "", cxcPlata(fac.saldo)),
+        crear("td", "", fac.estado || "—"),
+      );
+      cuerpo.append(tr);
+    });
+  } catch {
+    $("cxc-listado-resumen").textContent = "No se pudo hablar con el servidor.";
+  }
+}
+
+function cxcChecks() {
+  return [...document.querySelectorAll("#cxc-filas input[type=checkbox]:not(:disabled)")];
+}
+
+function cxcReflejarTodas() {
+  const todas = $("cxc-marcar-todas");
+  if (!todas) return;
+  const checks = cxcChecks();
+  const n = checks.filter((c) => c.checked).length;
+  todas.disabled = checks.length === 0;
+  todas.checked = checks.length > 0 && n === checks.length;
+  todas.indeterminate = n > 0 && n < checks.length;
+}
+
+function cxcSaldo(fila) {
+  const n = Number(fila && fila.saldo);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function cxcFilasVisibles() {
+  const tope = Number($("cxc-monto-valor")?.value);
+  return cxcFilas
+    .map((fila, i) => ({ fila, i }))
+    .filter(({ fila }) => {
+      const n = cxcSaldo(fila);
+      if (cxcMontoSel === "cero") return n === 0;
+      if (cxcMontoSel === "negativo") return n < 0;
+      if (cxcMontoSel === "menos") {
+        if (String($("cxc-monto-valor")?.value || "") === "") return true;
+        return Number.isFinite(tope) && n < tope;
+      }
+      if (cxcMontoSel === "mas") {
+        if (String($("cxc-monto-valor")?.value || "") === "") return true;
+        return Number.isFinite(tope) && n > tope;
+      }
+      return true;
+    });
+}
+
+function pintarCxc() {
+  const cuerpo = $("cxc-filas");
+  if (!cuerpo) return;
+  cuerpo.innerHTML = "";
+  cxcFilasVisibles().forEach(({ fila, i }) => {
+    const tr = crear("tr");
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.dataset.i = String(i);
+    check.checked = fila.estado === "cambiar" || fila.estado === "igual" || fila.estado === "listo";
+    if (!fila.contact_id) check.disabled = true;
+    check.onchange = cxcReflejarTodas;
+    const tdCheck = crear("td", "cxc-check-td");
+    const casilla = crear("label", "cxc-fila-check");
+    casilla.append(check, document.createElement("span"));
+    tdCheck.append(casilla);
+    const clase = (fila.estado === "cambiar") ? "cxc-estado-cambiar" : ((fila.estado === "igual" || fila.estado === "listo") ? "cxc-estado-igual" : "cxc-estado-mal");
+    tr.append(
+      tdCheck,
+      crear("td", "", fila.empresa || fila.identificacion || `fila ${fila.fila}`),
+      crear("td", "", fila.cuenta || "—"),
+      crear("td", "", fila.oficial || "—"),
+      crear("td", "", fila.cxc_actual || "—"),
+      crear("td", "", fila.correo || "—"),
+      crear("td", "", cxcPlata(cxcSaldo(fila))),
+      crear("td", clase, fila.aviso ? `${cxcEtiqueta(fila.estado)}. ${fila.aviso}` : cxcEtiqueta(fila.estado)),
+      cxcVerCelda("Ver PDF", fila.contact_id ? () => verPdfCxc(fila) : null),
+      cxcVerCelda("Ver listado", fila.contact_id ? () => verListadoCxc(fila) : null),
+    );
+    cuerpo.append(tr);
+  });
+  cxcReflejarTodas();
+}
+
+function cxcMarcadas() {
+  return [...document.querySelectorAll("#cxc-filas input[type=checkbox]:checked")]
+    .map((el) => cxcFilas[Number(el.dataset.i)])
+    .filter(Boolean);
+}
+
+function mostrarPreviaCxc(datos) {
+  pintarCxcLeyendo({ activo: false });
+  cxcFilas = datos.filas || [];
+  const r = datos.resumen || {};
+  const cambiar = r.cambiar || 0;
+  const listo = r.listo || cxcFilas.filter((f) => f.estado === "listo").length;
+  const conCuenta = cxcFilas.filter((f) => f.contact_id).length;
+  const sinCuenta = r.sin_cuenta || 0;
+  const deZoho = r.origen === "zoho";
+  $("cxc-estado").classList.remove("oculto");
+  if (deZoho) {
+    $("cxc-estado").textContent = conCuenta
+      ? `Vista previa: ${conCuenta} cuenta${conCuenta === 1 ? "" : "s"} de Zoho. El envío es un solo correo con PDF y listado. Todavía no se mandó nada.`
+      : "Vista previa: Zoho no trajo cuentas con ese filtro.";
+  } else {
+    $("cxc-estado").textContent = cambiar
+      ? `Vista previa: ${cambiar} cuenta${cambiar === 1 ? "" : "s"} listas para guardar el correo CXC. Todavía no se escribió nada.`
+      : `Vista previa: leímos ${r.total || 0} empresas${conCuenta ? ` y ${conCuenta} coincidieron en Zoho` : " y ninguna coincidió con Zoho"}.`;
+  }
+  $("cxc-resumen").classList.remove("oculto");
+  const extra = (r.avisos && r.avisos.length) ? ` ${r.avisos.join(" ")}` : "";
+  $("cxc-resumen").textContent = (
+    sinCuenta ? `${sinCuenta} no se encontraron en Zoho. ` : ""
+  ) + `El correo lleva PDF y listado juntos · ${r.periodo_texto || cxcPeriodoTexto()} · de ${r.desde || ""} a ${r.hasta || ""} · solo pendiente.` + extra;
+  $("cxc-tabla-caja").classList.remove("oculto");
+  $("cxc-acciones").classList.toggle("oculto", conCuenta === 0);
+  $("cxc-aplicar").classList.toggle("oculto", !cxcFilas.some((f) => f.contact_id && f.correo));
+  pintarCxc();
+}
+
+function mostrarArchivoCxc(archivo, meta) {
+  if (!$("cxc-drop-archivo")) return;
+  $("cxc-drop").classList.add("con-archivo");
+  $("cxc-drop-vacio").classList.add("oculto");
+  $("cxc-drop-archivo").classList.remove("oculto");
+  $("cxc-drop-nombre").textContent = archivo.name || "archivo";
+  $("cxc-drop-meta").textContent = meta || "";
+  const esFoto = String(archivo.type || "").startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(archivo.name || "");
+  const thumb = $("cxc-drop-thumb");
+  const icono = $("cxc-drop-icono");
+  if (thumb.dataset.url) {
+    URL.revokeObjectURL(thumb.dataset.url);
+    delete thumb.dataset.url;
+  }
+  thumb.removeAttribute("src");
+  thumb.classList.add("oculto");
+  icono.textContent = esFoto ? "foto" : (/\.csv$/i.test(archivo.name || "") ? "csv" : "xlsx");
+  icono.classList.remove("oculto");
+}
+
+function nombreJpg(nombre) {
+  return String(nombre || "foto").replace(/\.[^.]+$/, "") + ".jpg";
+}
+
+async function achicarFoto(archivo) {
+  if (!archivo || archivo.size < 350000) return archivo;
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(archivo, { resizeWidth: 1600, resizeQuality: "medium" });
+  } catch {
+    try {
+      bitmap = await createImageBitmap(archivo);
+    } catch {
+      return archivo;
+    }
+  }
+  const maxLado = 1600;
+  const lado = Math.max(bitmap.width, bitmap.height);
+  const escala = lado > maxLado ? maxLado / lado : 1;
+  const w = Math.max(1, Math.round(bitmap.width * escala));
+  const h = Math.max(1, Math.round(bitmap.height * escala));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d", { alpha: false }).drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+  const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.8));
+  canvas.width = 0;
+  canvas.height = 0;
+  if (!blob) return archivo;
+  return new File([blob], nombreJpg(archivo.name), { type: "image/jpeg" });
+}
+
+async function subirCxc(archivo) {
+  if (!archivo) return;
+  const esFoto = String(archivo.type || "").startsWith("image/") || /\.(png|jpe?g|webp|gif|bmp)$/i.test(archivo.name || "");
+  cxcBucleOrigen = "excel";
+  mostrarArchivoCxc(archivo, esFoto ? "Foto · preparando…" : "Excel · leyendo y buscando en Zoho…");
+  $("cxc-estado").classList.add("oculto");
+  pintarCxcLeyendo({
+    activo: true,
+    tipo: "cxc-lectura",
+    archivo: archivo.name,
+    texto: esFoto ? "Achicando la foto…" : "Leyendo el archivo…",
+  });
+  $("cxc-tabla-caja").classList.add("oculto");
+  $("cxc-resumen").classList.add("oculto");
+  $("cxc-acciones").classList.add("oculto");
+  let mandar = archivo;
+  if (esFoto) {
+    await new Promise((r) => setTimeout(r, 0));
+    mandar = await achicarFoto(archivo);
+    $("cxc-drop-meta").textContent = "Foto · leyendo y buscando en Zoho…";
+    pintarCxcLeyendo({
+      activo: true,
+      tipo: "cxc-lectura",
+      archivo: archivo.name,
+      texto: "Leyendo la foto…",
+    });
+  }
+  const form = new FormData();
+  form.append("archivo", mandar, mandar.name);
+  try {
+    const rango = cxcRangoValido();
+    if (!rango) return;
+    const respuesta = await fetch(`/api/cxc/previa?periodo=${encodeURIComponent(rango.modo || "mes")}&desde=${encodeURIComponent(rango.desde)}&hasta=${encodeURIComponent(rango.hasta)}`, { method: "POST", body: form });
+    let datos = await cxcLeer(respuesta);
+    if (datos.trabajo) datos = await esperarTrabajoCxc("Leyendo el archivo y buscando las cuentas en Zoho…");
+    $("cxc-drop-meta").textContent = esFoto ? "Foto cargada" : "Excel cargado";
+    pintarCxcLeyendo({ activo: false });
+    mostrarPreviaCxc(datos);
+  } catch (error) {
+    $("cxc-drop-meta").textContent = "No se pudo leer";
+    pintarCxcLeyendo({ activo: false });
+    $("cxc-estado").classList.remove("oculto");
+    $("cxc-estado").textContent = error.message || "No se pudo leer el archivo.";
+    $("cxc-tabla-caja")?.classList.add("oculto");
+    $("cxc-acciones")?.classList.add("oculto");
+    avisar(
+      "No se pudo leer el archivo",
+      error.message || "Ese archivo no tiene datos ni columnas válidas para estados de cuenta. Se necesita el nombre de la empresa y un correo.",
+      [],
+      { error: true },
+    );
+  }
+}
+
+async function filtrarCxcZoho() {
+  $("cxc-estado").classList.add("oculto");
+  pintarCxcLeyendo({
+    activo: true,
+    tipo: "cxc-filtro",
+    archivo: "clientes de Zoho",
+    texto: "Buscando en Zoho las cuentas con ese filtro…",
+  });
+  $("cxc-tabla-caja").classList.add("oculto");
+  $("cxc-resumen").classList.add("oculto");
+  $("cxc-acciones").classList.add("oculto");
+  $("cxc-filtrar").disabled = true;
+  cxcBucleOrigen = "zoho";
+  try {
+    const rango = cxcRangoValido();
+    if (!rango) {
+      pintarCxcLeyendo({ activo: false });
+      return;
+    }
+    const respuesta = await fetch("/api/cxc/filtrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        periodo: rango.modo || "mes",
+        desde: rango.desde,
+        hasta: rango.hasta,
+        periodo_texto: rango.label,
+        solo_pendiente: Boolean($("cxc-solo-pendiente")?.checked),
+      }),
+    });
+    let datos = await cxcLeer(respuesta);
+    if (datos.trabajo) datos = await esperarTrabajoCxc("Cargando cuentas de Zoho…");
+    mostrarPreviaCxc(datos);
+  } catch (error) {
+    pintarCxcLeyendo({ activo: false });
+    $("cxc-estado").classList.remove("oculto");
+    $("cxc-estado").textContent = error.message || "No se pudo hablar con el servidor.";
+  } finally {
+    $("cxc-filtrar").disabled = false;
+  }
+}
+
+iniciarFiltrosCxc();
+if ($("cxc-filtrar")) $("cxc-filtrar").onclick = filtrarCxcZoho;
+
+function quitarArchivoCxc() {
+  const thumb = $("cxc-drop-thumb");
+  if (thumb?.dataset.url) {
+    URL.revokeObjectURL(thumb.dataset.url);
+    delete thumb.dataset.url;
+    thumb.removeAttribute("src");
+  }
+  if ($("cxc-archivo")) $("cxc-archivo").value = "";
+  $("cxc-drop")?.classList.remove("con-archivo");
+  $("cxc-drop-archivo")?.classList.add("oculto");
+  $("cxc-drop-vacio")?.classList.remove("oculto");
+  $("cxc-drop-thumb")?.classList.add("oculto");
+  $("cxc-drop-icono")?.classList.add("oculto");
+  cxcFilas = [];
+  $("cxc-tabla-caja")?.classList.add("oculto");
+  $("cxc-resumen")?.classList.add("oculto");
+  $("cxc-acciones")?.classList.add("oculto");
+  $("cxc-estado")?.classList.add("oculto");
+  $("cxc-estado").textContent = "";
+  pintarCxcLeyendo({ activo: false });
+}
+
+if ($("cxc-archivo")) {
+  const drop = $("cxc-drop");
+  $("cxc-archivo").onchange = (e) => subirCxc(e.target.files && e.target.files[0]);
+  drop.addEventListener("click", (e) => {
+    if (e.target.closest("#cxc-quitar")) return;
+    $("cxc-archivo").click();
+  });
+  $("cxc-quitar")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    quitarArchivoCxc();
+  });
+  ["dragenter", "dragover"].forEach((ev) => {
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("sobre"); });
+  });
+  ["dragleave", "drop"].forEach((ev) => {
+    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("sobre"); });
+  });
+  drop.addEventListener("drop", (e) => {
+    const archivo = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    subirCxc(archivo);
+  });
+}
+
+function cerrarListadoCxc() {
+  $("cxc-listado-modal")?.classList.add("oculto");
+}
+if ($("cxc-listado-cerrar")) $("cxc-listado-cerrar").onclick = cerrarListadoCxc;
+if ($("cxc-listado-modal")) {
+  $("cxc-listado-modal").onclick = (e) => {
+    if (e.target.id === "cxc-listado-modal") cerrarListadoCxc();
+  };
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("cxc-listado-modal") && !$("cxc-listado-modal").classList.contains("oculto")) {
+    cerrarListadoCxc();
+  }
+});
+
+async function ponerCxcFilas(filas) {
+  const listas = filas.filter((f) => f.contact_id && f.correo);
+  if (!listas.length) {
+    avisar("Nada para escribir", "Marcá al menos una cuenta con correo CXC. Esto solo guarda el mail, no manda el estado de cuenta.");
+    return;
+  }
+  const ok = await confirmarAviso(
+    "Poner correo CXC",
+    `Se va a guardar el correo CXC en ${listas.length} cuenta${listas.length === 1 ? "" : "s"} de Zoho. El correo oficial no se toca y no se envía ningún estado de cuenta.`,
+    listas.slice(0, 8).map((f) => `${f.cuenta || f.empresa}: ${f.cxc_actual || "vacío"} → ${f.correo}`),
+    "Sí, poner CXC",
+  );
+  if (!ok) return;
+  if ($("cxc-aplicar")) $("cxc-aplicar").disabled = true;
+  $("cxc-estado").classList.remove("oculto");
+  $("cxc-estado").textContent = "Aplicando correos CXC en Zoho…";
+  try {
+    const respuesta = await fetch("/api/cxc/aplicar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filas: listas.map((f) => ({ ...f, estado: "cambiar" })) }),
+    });
+    const datos = await respuesta.json();
+    if (!respuesta.ok || datos.ok === false) {
+      const extra = (datos.fallos || []).slice(0, 6);
+      avisar("No se pudo escribir", datos.mensaje || "Zoho no guardó los correos CXC. El campo sigue como estaba.", extra, { error: true });
+      $("cxc-estado").textContent = datos.mensaje || "No se pudo escribir.";
+      return;
+    }
+    let final = datos;
+    if (datos.trabajo) {
+      const fin = await esperarFinTrabajoCxc();
+      final = fin.cxc_resultado || {};
+    }
+    if (!final.ok || !final.cambiados) {
+      const extra = (final.fallos || []).slice(0, 6);
+      avisar("No se pudo escribir", final.mensaje || "Zoho no guardó los correos CXC. El campo sigue como estaba.", extra, { error: true });
+      $("cxc-estado").textContent = final.mensaje || "No se pudo escribir.";
+      return;
+    }
+    $("cxc-estado").textContent = `Listo: ${final.cambiados} CXC escritos. No se envió ningún estado de cuenta.`;
+    listas.forEach((f) => { f.cxc_actual = f.correo; f.estado = "igual"; });
+    pintarCxc();
+  } catch {
+    avisar("No se pudo escribir", "No se pudo hablar con el servidor.", [], { error: true });
+  } finally {
+    if ($("cxc-aplicar")) $("cxc-aplicar").disabled = false;
+  }
+}
+
+async function esperarFinTrabajoCxc() {
+  while (true) {
+    await new Promise((r) => setTimeout(r, 800));
+    const st = await (await fetch("/api/trabajo")).json();
+    pintarTrabajoCard(st);
+    if (!st.activo) return st;
+  }
+}
+
+if ($("cxc-marcar-todas")) {
+  $("cxc-marcar-todas").onchange = () => {
+    const on = $("cxc-marcar-todas").checked;
+    cxcChecks().forEach((c) => { c.checked = on; });
+    cxcReflejarTodas();
+  };
+}
+
+if ($("cxc-aplicar")) {
+  $("cxc-aplicar").onclick = () => ponerCxcFilas(cxcMarcadas());
+}
+
+if ($("cxc-enviar")) {
+  $("cxc-enviar").onclick = async () => {
+    const filas = cxcMarcadas().filter((f) => f.contact_id);
+    if (!filas.length) {
+      avisar("Nada para enviar", "Marcá al menos una cuenta que haya coincidido en Zoho.");
+      return;
+    }
+    const ok = await confirmarAviso(
+      "Enviar estados de cuenta",
+      `Un solo correo por cuenta, con el PDF y el listado de pendientes juntos. El mensaje es el de la plantilla. Van ${filas.length} cuenta${filas.length === 1 ? "" : "s"} · ${cxcPeriodoTexto()}. Va al correo oficial y al CXC.`,
+      filas.slice(0, 8).map((f) => `${f.cuenta || f.empresa} · ${[f.oficial, f.correo || f.cxc_actual].filter(Boolean).join(" · ")}`),
+      "Sí, enviar",
+    );
+    if (!ok) return;
+    $("cxc-enviar").disabled = true;
+    $("cxc-estado").classList.remove("oculto");
+    $("cxc-estado").textContent = "Enviando estados de cuenta…";
+    try {
+      const respuesta = await fetch("/api/cxc/enviar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contact_ids: filas.map((f) => f.contact_id),
+          periodo: cxcRango().modo || "mes",
+          desde: cxcRango().desde,
+          hasta: cxcRango().hasta,
+        }),
+      });
+      let datos = await respuesta.json();
+      if (!respuesta.ok || datos.ok === false) {
+        avisar("No se pudo enviar", datos.mensaje || "Zoho no mandó los correos.", [], { error: true });
+        $("cxc-estado").textContent = datos.mensaje || "No se pudo enviar.";
+        return;
+      }
+      if (datos.trabajo) {
+        const fin = await esperarFinTrabajoCxc();
+        datos = fin.cxc_resultado || {};
+      }
+      if (!datos.ok && datos.ok !== undefined) {
+        avisar("No se pudo enviar", datos.mensaje || "Zoho no mandó los correos.", [], { error: true });
+        $("cxc-estado").textContent = datos.mensaje || "No se pudo enviar.";
+        return;
+      }
+      mostrarToast("Estados de cuenta enviados", `${datos.enviados || 0} enviados${datos.errores ? ` · ${datos.errores} error` : ""}`);
+      $("cxc-estado").textContent = `Listo: ${datos.enviados || 0} enviados${datos.errores ? `, ${datos.errores} con error` : ""}.`;
+    } catch {
+      avisar("No se pudo enviar", "No se pudo hablar con el servidor.", [], { error: true });
+    } finally {
+      $("cxc-enviar").disabled = false;
+    }
+  };
+}
+
+function cerrarPlantillaCxc() {
+  $("cxc-plantilla-modal")?.classList.add("oculto");
+}
+
+async function abrirPlantillaCxc() {
+  const modal = $("cxc-plantilla-modal");
+  if (!modal) return;
+  let datos = CXC_PLANTILLA_DEFECTO;
+  try {
+    datos = await cxcLeer(await fetch("/api/cxc/plantilla"));
+  } catch {
+    /* usa el texto por defecto */
+  }
+  if ($("cxc-plantilla-asunto")) $("cxc-plantilla-asunto").value = datos.asunto || CXC_PLANTILLA_DEFECTO.asunto;
+  if ($("cxc-plantilla-cuerpo")) $("cxc-plantilla-cuerpo").value = datos.cuerpo || CXC_PLANTILLA_DEFECTO.cuerpo;
+  modal.classList.remove("oculto");
+  $("cxc-plantilla-cuerpo")?.focus();
+}
+
+async function guardarPlantillaCxc() {
+  const asunto = ($("cxc-plantilla-asunto")?.value || "").trim();
+  const cuerpo = ($("cxc-plantilla-cuerpo")?.value || "").trim();
+  if (!cuerpo) {
+    avisar("Falta el mensaje", "Escribí el texto que se va a pegar en todos los correos.", [], { error: true });
+    return;
+  }
+  try {
+    await cxcLeer(await fetch("/api/cxc/plantilla", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ asunto, cuerpo }),
+    }));
+    cerrarPlantillaCxc();
+    mostrarToast("Plantilla guardada", "Ese texto se va a pegar en todos los estados de cuenta.");
+  } catch (err) {
+    avisar("No se pudo guardar", err.message || "No se pudo hablar con el servidor.", [], { error: true });
+  }
+}
+
+if ($("cxc-plantilla")) $("cxc-plantilla").onclick = () => abrirPlantillaCxc();
+if ($("cxc-plantilla-cerrar")) $("cxc-plantilla-cerrar").onclick = () => cerrarPlantillaCxc();
+if ($("cxc-plantilla-guardar")) $("cxc-plantilla-guardar").onclick = () => guardarPlantillaCxc();
+if ($("cxc-plantilla-modal")) {
+  $("cxc-plantilla-modal").onclick = (e) => {
+    if (e.target.id === "cxc-plantilla-modal") cerrarPlantillaCxc();
+  };
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("cxc-plantilla-modal") && !$("cxc-plantilla-modal").classList.contains("oculto")) {
+    cerrarPlantillaCxc();
+  }
 });

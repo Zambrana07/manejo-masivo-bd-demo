@@ -3,39 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Manejo masivo de bases de datos · Demo</title>
-<link rel="icon" type="image/png" href="data:,">
-<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="estilos.css?v=demo11">
+<title>Catálogo de muestra · Demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c4403c'/%3E%3C/svg%3E">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/estilos.css?v=35">
 </head>
 <body class="es-demo">
-<div id="demo-banner" class="demo-banner" role="status" data-i18n="banner">Modo demo — datos ficticios · no es el sistema real</div>
-<button type="button" class="btn-idioma btn-idioma-login" aria-label="Cambiar idioma a inglés">English</button>
+<div class="demo-banner">Modo demo · datos ficticios · no se conecta a Zoho ni al servidor real</div>
 <div id="toasts" class="toasts" aria-live="polite"></div>
 <section id="login" class="login">
   <canvas id="fibras"></canvas>
   <form class="vidrio" id="forma">
-    <p class="marca" data-i18n="login.marca">MANEJO MASIVO · DEMO</p>
-    <h1 data-i18n="login.h1">Ingresar</h1>
-    <p class="sub" data-i18n="login.sub">Simulación de manejo masivo de bases de datos. Todo es inventado.</p>
-    <button class="btn rojo ancho btn-entrar" type="button" id="entrar-invitado" data-i18n="login.guest">Entrar como invitado</button>
-    <p class="demo-o" data-i18n="login.or">o probá el formulario (cualquier usuario sirve)</p>
-    <label><span data-i18n="login.user">Usuario</span><input id="usuario" autocomplete="username" value="invitado"></label>
-    <label><span data-i18n="login.pass">Contraseña</span>
+    <p class="marca">CATÁLOGO DE MUESTRA</p>
+    <h1>Ingresar</h1>
+    <p class="sub">Demo de portafolio. Usuario <b>invitado</b>, contraseña <b>demo</b>.</p>
+    <label>Usuario<input id="usuario" autocomplete="username" required></label>
+    <label>Contraseña
       <span class="fila-pass">
-        <input id="contra" type="password" autocomplete="current-password" value="demo">
-        <button type="button" id="ver" class="btn fantasma" data-i18n="login.see">Ver</button>
+        <input id="contra" type="password" autocomplete="current-password" required>
+        <button type="button" id="ver" class="btn fantasma">Ver</button>
       </span>
     </label>
     <p id="aviso" class="aviso"></p>
-    <button class="btn borde ancho" type="submit" data-i18n="login.enter">Entrar</button>
+    <button class="btn rojo ancho btn-entrar" type="submit">Entrar</button>
+    <p class="demo-o">o</p>
+    <button type="button" class="btn borde ancho" id="entrar-invitado">Entrar como invitado</button>
   </form>
 </section>
 
 <section id="intro" class="intro oculto" aria-live="polite">
   <div class="intro-centro">
-    <h1 class="intro-titulo"><span data-i18n="intro.hi">Bienvenido, </span><span id="intro-nombre">Invitado</span></h1>
-    <p class="intro-pista" data-i18n="intro.click">Hacé clic para continuar</p>
+    <h1 class="intro-titulo">Bienvenido, <span id="intro-nombre">Invitado</span></h1>
+    <p class="intro-pista">Hacé clic para continuar</p>
   </div>
 </section>
 
@@ -44,71 +43,84 @@
     <button type="button" id="menu-btn" class="hamb abierto" aria-label="Menú">
       <span></span><span></span><span></span>
     </button>
-    <span class="logo logo-texto" aria-hidden="true">MB</span>
+    <img class="logo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c4403c'/%3E%3C/svg%3E" alt="">
     <div class="titulo-barra">
-      <strong data-i18n="bar.title">Manejo masivo de BD · Demo</strong>
-      <small><span data-i18n="bar.portfolio">Portafolio</span> <b>/</b> <em id="miga">Inicio</em></small>
+      <strong>Catálogo de muestra</strong>
+      <small>Demo <b>/</b> <em id="miga">Inicio</em></small>
     </div>
     <div class="barra-der">
-      <button type="button" class="btn-idioma btn-idioma-barra" aria-label="Cambiar idioma a inglés">English</button>
-      <button type="button" class="vig-global oculto" id="vig-global" title="Ir al vigilante" aria-live="polite">
-        <i></i><span id="vig-global-texto" data-i18n="bar.watch">Vigilante activo</span>
+      <button type="button" class="vig-global oculto" id="bucle-global" title="Ir a estados de cuenta" aria-live="polite">
+        <i></i><span id="bucle-global-texto">Bucle activo</span>
       </button>
-      <span class="estado-servidor" id="estado-servidor"><i></i><span data-i18n="bar.server">Servidor online</span></span>
+      <button type="button" class="vig-global oculto" id="vig-global" title="Ir al vigilante" aria-live="polite">
+        <i></i><span id="vig-global-texto">Vigilante activo</span>
+      </button>
+      <span class="estado-servidor" id="estado-servidor"><i></i>Servidor online</span>
       <span class="reloj" id="reloj">--:--</span>
-      <span class="avatar" id="avatar-barra" title="Invitado">IN</span>
+      <span class="avatar" title="Invitado">IN</span>
     </div>
   </header>
   <canvas id="anillo" class="anillo" aria-hidden="true"></canvas>
   <div class="cuerpo">
     <nav id="menu" class="menu">
-      <p class="menu-titulo" data-i18n="menu.title">Menú</p>
+      <p class="menu-titulo">Menú</p>
       <button type="button" data-pagina="inicio" class="item activo" title="Inicio"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>
-        <span class="item-texto" data-i18n="menu.home">Inicio</span></button>
-      <button type="button" data-pagina="cambios" class="item" title="cambios-masivos"><i></i>
+        <span class="item-texto">Inicio</span></button>
+      <button type="button" data-pagina="cambios" class="item" title="zoho-cambios"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
-        <span class="item-texto" data-i18n="menu.bulk">cambios-masivos</span></button>
+        <span class="item-texto">zoho-cambios</span></button>
       <button type="button" data-pagina="compuestos" class="item" title="artículos compuestos"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="8" y="13" width="8" height="8" rx="1.5"/></svg>
-        <span class="item-texto" data-i18n="menu.kits">artículos compuestos</span></button>
+        <span class="item-texto">artículos compuestos</span></button>
       <button type="button" data-pagina="vigilante" class="item" title="vigilante"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span class="item-texto" data-i18n="menu.watch">vigilante</span></button>
-      <button type="button" data-pagina="historial" class="item" title="Historial"><i></i>
+        <span class="item-texto">vigilante</span></button>
+      <button type="button" data-pagina="cxc" class="item" title="estados de cuenta"><i></i>
+        <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg>
+        <span class="item-texto">estados de cuenta</span></button>
+      <button type="button" data-pagina="historial" class="item item-abajo" title="Historial"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
-        <span class="item-texto" data-i18n="menu.hist">Historial</span></button>
+        <span class="item-texto">Historial</span></button>
       <div class="menu-pie">
         <span class="menu-avatar" id="menu-avatar" aria-hidden="true">AZ</span>
         <div class="menu-pie-texto">
-          <p data-i18n="menu.session">Sesión</p>
+          <p>Sesión</p>
           <strong id="menu-nombre">Invitado</strong>
           <small id="menu-lugar">Solo esta computadora</small>
-          <button type="button" class="menu-salir" id="salir" data-i18n="menu.out">Cerrar sesión</button>
+          <button type="button" class="menu-salir" id="salir">Cerrar sesión</button>
         </div>
       </div>
     </nav>
     <main id="main">
-      <div id="esqueleto" class="esqueleto oculto" aria-hidden="true">
+      <div id="trabajo-card" class="trabajo-card oculto" aria-live="polite">
+        <div class="trabajo-cabeza">
+          <em class="hist-marca ejecutando" id="trabajo-marca">Ejecutándose</em>
+          <strong id="trabajo-quien">—</strong>
+        </div>
+        <p id="trabajo-accion" class="trabajo-accion"></p>
+        <p id="trabajo-detalle" class="trabajo-detalle"></p>
+        <p id="trabajo-avance" class="trabajo-avance"></p>
+        <p id="trabajo-eta" class="trabajo-eta"></p>
+      </div>
+      <div id="esqueleto" class="esqueleto oculto">
         <div class="hueso titulo"></div>
         <div class="hueso linea"></div>
-        <div class="hueso linea corta"></div>
-        <div class="hueso bloque"></div>
-        <div class="hueso linea"></div>
         <div class="hueso bloque"></div>
         <div class="hueso linea corta"></div>
+        <div class="hueso bloque"></div>
       </div>
 
       <section id="inicio" class="pagina">
         <div class="portada">
           <div class="bienvenida">
-            <p class="marca" data-i18n="home.marca">MANEJO MASIVO DE BASES DE DATOS · DEMO</p>
-            <h1 id="bienvenida-titulo"><span data-i18n="home.hi">Bienvenido,</span><br><span id="bienvenida-nombre">Invitado</span></h1>
-            <p data-i18n="home.lead">Simulación de la herramienta interna: cambios masivos por subfamilia, kits (artículos compuestos), vigilancia de fotos y stock, y confirmación antes de “escribir”. Los datos son ficticios.</p>
+            <p class="marca">CIRCUITO CINCO · HERRAMIENTA INTERNA</p>
+            <h1 id="bienvenida-titulo">Bienvenido,<br><span id="bienvenida-nombre">Invitado</span></h1>
+            <p>Desde acá se prepara el catálogo de Zoho y la tienda en línea: cambios masivos por subfamilia, vigilancia automática de fotos y stock, y todo con confirmación antes de escribir.</p>
             <div class="acciones">
-              <button type="button" class="btn rojo" data-ir="cambios" data-i18n="home.go.bulk">Ir a cambios-masivos</button>
-              <button type="button" class="btn borde" data-ir="compuestos" data-i18n="home.go.kits">Ir a artículos compuestos</button>
-              <button type="button" class="btn borde" data-ir="vigilante" data-i18n="home.go.watch">Ir a vigilante</button>
+              <button type="button" class="btn rojo" data-ir="cambios">Ir a zoho-cambios</button>
+              <button type="button" class="btn borde" data-ir="compuestos">Ir a artículos compuestos</button>
+              <button type="button" class="btn borde" data-ir="vigilante">Ir a vigilante</button>
             </div>
           </div>
 
@@ -118,34 +130,24 @@
                 <div class="vitrina-pista" id="vitrina-pista">
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
-                      <div class="maq-barra"><i></i><i></i><i></i><span>cambios-masivos</span></div>
-                      <div class="maq-drop">Subfamilia 1 <b>▼</b></div>
+                      <div class="maq-barra"><i></i><i></i><i></i><span>zoho-cambios</span></div>
+                      <div class="maq-drop">Grupo muestra A <b>▼</b></div>
                       <div class="maq-fila"><span>Aplicar en la tienda</span><em>Marcar</em></div>
                       <div class="maq-fila"><span>Porcentaje de utilidad</span><em>55%</em></div>
-                      <div class="maq-boton">Aplicar cambios</div>
+                      <div class="maq-boton">Aplicar en Zoho</div>
                     </div>
-                    <h3 data-i18n="slide.bulk.t">Cambios masivos por subfamilia</h3>
-                    <p data-i18n="slide.bulk.p">Elegí una, varias o TODAS las subfamilias y cambiá tienda, utilidad, sección y estante en un solo paso.</p>
-                  </div>
-                  <div class="vitrina-cuadro">
-                    <div class="maqueta">
-                      <div class="maq-barra"><i></i><i></i><i></i><span>kits</span></div>
-                      <div class="maq-drop">AALEF-T-1817 <b>▼</b></div>
-                      <div class="maq-fila"><span>E + I</span><em>listo</em></div>
-                      <div class="maq-boton">Armar kit</div>
-                    </div>
-                    <h3 data-i18n="slide.kits.t">Artículos compuestos (kits)</h3>
-                    <p data-i18n="slide.kits.p">Armá un kit con condensadora + evaporadora del mismo modelo. Vista previa y confirmación antes de crear.</p>
+                    <h3>Cambios masivos por subfamilia</h3>
+                    <p>Elegí una, varias o TODAS las subfamilias y cambiá tienda, utilidad, sección y estante en un solo paso.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
                       <div class="maq-barra"><i></i><i></i><i></i><span>vigilante</span></div>
                       <div class="maq-toggle"><span></span>Activar vigilante</div>
-                      <div class="maq-fila"><span>Subfamilia 2</span><em>cada 30 min</em></div>
+                      <div class="maq-fila"><span>GRUPO MUESTRA</span><em>cada 30 min</em></div>
                       <div class="maq-log">fotos: 3 artículos terminados<br>stock: 2 sin stock desmarcados</div>
                     </div>
-                    <h3 data-i18n="slide.watch.t">Vigilante automático</h3>
-                    <p data-i18n="slide.watch.p">Revisa fotos nuevas, quita de la tienda lo sin stock y agrega lo que ya tiene stock y foto, cada 30 o 60 minutos.</p>
+                    <h3>Vigilante automático</h3>
+                    <p>Revisa fotos nuevas, quita de la tienda lo sin stock y agrega lo que ya tiene stock y foto, cada 30 o 60 minutos.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
@@ -154,18 +156,18 @@
                       <div class="maq-fila"><span>Utilidad</span><em>55%</em></div>
                       <div class="maq-fila grande"><span>Estimado con IVA</span><em>₡17 515</em></div>
                     </div>
-                    <h3 data-i18n="slide.price.t">Utilidad y estimado</h3>
-                    <p data-i18n="slide.price.p">Porcentaje de utilidad y % estimado como campos directos. Solo se escribe lo que cambia.</p>
+                    <h3>Utilidad y estimado</h3>
+                    <p>Porcentaje de utilidad y % estimado como campos directos. Solo se escribe lo que cambia.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
                       <div class="maq-barra"><i></i><i></i><i></i><span>seguridad</span></div>
-                      <div class="maq-fila"><span>Datos</span><em>ficticios</em></div>
-                      <div class="maq-fila"><span>Servidor</span><em>ninguno (estático)</em></div>
-                      <div class="maq-fila"><span>Escrituras</span><em>simuladas</em></div>
+                      <div class="maq-fila"><span>Llaves de Zoho</span><em>cifradas</em></div>
+                      <div class="maq-fila"><span>Servidor</span><em>solo 127.0.0.1</em></div>
+                      <div class="maq-fila"><span>Escrituras</span><em>con confirmación</em></div>
                     </div>
-                    <h3 data-i18n="slide.safe.t">Demo segura</h3>
-                    <p data-i18n="slide.safe.p">Sin secretos y sin servidor: solo la interfaz y datos inventados para el portafolio.</p>
+                    <h3>Seguro por diseño</h3>
+                    <p>Credenciales cifradas con tu contraseña, acceso solo local y ninguna escritura sin confirmar.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
@@ -175,18 +177,18 @@
                       <div class="maq-fila"><span>Descargar Excel</span><em>.xlsx</em></div>
                       <div class="maq-boton">Aplicar estos cambios</div>
                     </div>
-                    <h3 data-i18n="slide.prev.t">Vista previa antes de aplicar</h3>
-                    <p data-i18n="slide.prev.p">Mirá artículo por artículo qué va a cambiar, con el valor de antes y de después, y bajalo en Excel.</p>
+                    <h3>Vista previa antes de aplicar</h3>
+                    <p>Mirá artículo por artículo qué va a cambiar, con el valor de antes y de después, y bajalo en Excel.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
                       <div class="maq-barra"><i></i><i></i><i></i><span>resumen</span></div>
-                      <div class="maq-fila grande"><span>Subfamilia 3</span><em>48</em></div>
+                      <div class="maq-fila grande"><span>GRUPO MUESTRA</span><em>412</em></div>
                       <div class="maq-fila"><span>Sin imagen</span><em>37</em></div>
                       <div class="maq-fila"><span>Sin marcar en la tienda</span><em>51</em></div>
                     </div>
-                    <h3 data-i18n="slide.sum.t">Resumen por filtros</h3>
-                    <p data-i18n="slide.sum.p">Al elegir una subfamilia ves el total y cuántos artículos quedan con cada filtro.</p>
+                    <h3>Resumen por filtros</h3>
+                    <p>Al elegir una subfamilia ves el total y cuántos artículos quedan con cada filtro.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
@@ -196,18 +198,18 @@
                       <div class="maq-fila"><span>En la tienda sin stock</span><em>revisar</em></div>
                       <div class="maq-boton">Ver en la tienda</div>
                     </div>
-                    <h3 data-i18n="slide.rev.t">Artículos por revisar</h3>
-                    <p data-i18n="slide.rev.p">Solo lo publicado en la tienda: fotos pequeñas, con fondo o franjas, y lo que le falta algún dato.</p>
+                    <h3>Artículos por revisar</h3>
+                    <p>Solo lo publicado en la tienda: fotos pequeñas, con fondo o franjas, y lo que le falta en Zoho, con la ficha tal como la ve el cliente.</p>
                   </div>
                   <div class="vitrina-cuadro">
                     <div class="maqueta">
                       <div class="maq-barra"><i></i><i></i><i></i><span>historial</span></div>
                       <div class="maq-fila"><span>10:20 · Unidad → PCS</span><em>✓ 32</em></div>
-                      <div class="maq-fila"><span>Cuenta</span><em>DEMO</em></div>
+                      <div class="maq-fila"><span>Cuenta de muestra</span><em>INVITADO</em></div>
                       <div class="maq-log">Cada cambio con fecha, origen y el valor de antes y de después.</div>
                     </div>
-                    <h3 data-i18n="slide.hist.t">Historial de cambios</h3>
-                    <p data-i18n="slide.hist.p">Todo lo que se cambió desde la web, el vigilante y los scripts, con la cuenta que lo hizo.</p>
+                    <h3>Historial de cambios</h3>
+                    <p>Todo lo que se cambió desde la web, el vigilante y los scripts, con la cuenta de Zoho que lo hizo.</p>
                   </div>
                 </div>
               </div>
@@ -217,36 +219,36 @@
         </div>
 
         <div class="guia">
-          <p class="marca" data-i18n="guide.marca">GUÍA</p>
-          <h2 data-i18n="guide.h2">Cómo utilizar este sitio</h2>
+          <p class="marca">GUÍA</p>
+          <h2>Cómo utilizar este sitio</h2>
           <div class="linea-tiempo" id="linea-tiempo">
             <div class="lt-riel"><div class="lt-relleno"></div></div>
 
-            <div class="lt-grupo" data-i18n="g.bulk">cambios-masivos</div>
-            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>1</small><h3 data-i18n="g.bulk1.t">Elegí la subfamilia</h3><p data-i18n="g.bulk1.p">Están todas las subfamilias y la opción TODAS. Podés marcar varias a la vez. Escribí en el buscador del desplegable para encontrarla rápido.</p></div></div>
-            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>2</small><h3 data-i18n="g.bulk2.t">Filtrá como en Excel</h3><p data-i18n="g.bulk2.p">Con "Filtrar" elegís medidas, imagen, stock y más. Si la subfamilia no tiene artículos así, te avisa.</p></div></div>
-            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>3</small><h3 data-i18n="g.bulk3.t">Marcá lo que querés cambiar</h3><p data-i18n="g.bulk3.p">Tienda, porcentaje, estimado, unidad, sección y estante. Lo que quede en "No cambiar" o vacío no se toca.</p></div></div>
-            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>4</small><h3 data-i18n="g.bulk4.t">Aplicar cambios</h3><p data-i18n="g.bulk4.p">Sale una confirmación. Recién al aceptar se escribe el cambio. Se puede detener a mitad.</p></div></div>
+            <div class="lt-grupo">zoho-cambios</div>
+            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>zoho-cambios · 1</small><h3>Elegí la subfamilia</h3><p>Están todas las subfamilias de Zoho, la opción TODAS y "No tienen subfamilia". Podés marcar varias a la vez. Escribí en el buscador del desplegable para encontrarla rápido.</p></div></div>
+            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>zoho-cambios · 2</small><h3>Filtrá como en Excel</h3><p>Con "Filtrar" elegís activos o inactivos, sin familia, sin unidad, sin imagen, sin precio y más. En el recuadro de abajo podés marcar varias filas a la vez. Si no hay artículos así, te avisa.</p></div></div>
+            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>zoho-cambios · 3</small><h3>Marcá lo que querés cambiar</h3><p>Tienda, porcentaje, estimado, unidad, sección y estante. Lo que quede en "No cambiar" o vacío no se toca.</p></div></div>
+            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>zoho-cambios · 4</small><h3>Aplicar en Zoho</h3><p>Sale una confirmación. Recién al aceptar se escribe el cambio. Se puede detener a mitad.</p></div></div>
 
-            <div class="lt-grupo" data-i18n="g.kits">artículos compuestos</div>
-            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>1</small><h3 data-i18n="g.kits1.t">Elegí la pareja</h3><p data-i18n="g.kits1.p">La lista muestra condensadora + evaporadora del mismo modelo, por subfamilia. Armar rellena el kit. También se puede pegar a mano.</p></div></div>
-            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>2</small><h3 data-i18n="g.kits2.t">Revisá la pareja</h3><p data-i18n="g.kits2.p">Condensadora (E o GO) con evaporadora (I o GI) del mismo modelo. La W es parte del modelo: no se mezclan bases distintas.</p></div></div>
-            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>3</small><h3 data-i18n="g.kits3.t">Crear el kit</h3><p data-i18n="g.kits3.p">La vista previa muestra el kit y las piezas. Recién al confirmar se crea el compuesto tipo Kit, con un SKU nuevo. Las piezas sueltas no se tocan.</p></div></div>
+            <div class="lt-grupo">artículos compuestos</div>
+            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>artículos compuestos · 1</small><h3>Elegí la pareja</h3><p>La lista muestra dos piezas de muestra que se pueden juntar. Armar rellena el conjunto. También se puede pegar a mano.</p></div></div>
+            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>artículos compuestos · 2</small><h3>Revisá la pareja</h3><p>Cada conjunto usa dos piezas inventadas del mismo grupo. No se mezclan códigos de grupos distintos.</p></div></div>
+            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>artículos compuestos · 3</small><h3>Crear en Zoho</h3><p>La vista previa muestra el kit y las piezas. Recién al confirmar se crea el compuesto tipo Kit, con un SKU nuevo. Las piezas sueltas no se tocan.</p></div></div>
 
-            <div class="lt-grupo" data-i18n="g.watch">vigilante</div>
-            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>1</small><h3 data-i18n="g.watch1.t">Activá el vigilante</h3><p data-i18n="g.watch1.p">Con el interruptor. A la derecha aparece la configuración.</p></div></div>
-            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>2</small><h3 data-i18n="g.watch2.t">Subfamilia y tiempo</h3><p data-i18n="g.watch2.p">Una subfamilia (o TODAS), y cada cuánto revisar: 30 o 60 minutos. Todo lo que haga queda en un Excel descargable.</p></div></div>
-            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>3</small><h3 data-i18n="g.watch3.t">Marcá qué vigilar</h3><p data-i18n="g.watch3.p">Cambios de fotos, Sin stock o Con stock. Cada opción explica qué hace y corre hasta que la desmarques.</p></div></div>
+            <div class="lt-grupo">vigilante</div>
+            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>vigilante · 1</small><h3>Activá el vigilante</h3><p>Con el interruptor. A la derecha aparece la configuración.</p></div></div>
+            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>vigilante · 2</small><h3>Subfamilia y tiempo</h3><p>Una subfamilia de Zoho (o TODAS), y cada cuánto revisar: 30 o 60 minutos. Todo lo que haga queda en un Excel descargable.</p></div></div>
+            <div class="lt-item izq"><span class="lt-punto"></span><div class="lt-tarjeta"><small>vigilante · 3</small><h3>Marcá qué vigilar</h3><p>Cambios de fotos, Sin stock o Con stock. Cada opción explica qué hace y corre hasta que la desmarques.</p></div></div>
 
-            <div class="lt-grupo" data-i18n="g.hist">Historial</div>
-            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>1</small><h3 data-i18n="g.hist1.t">Revisá qué se cambió</h3><p data-i18n="g.hist1.p">Cada cambio de la web, del vigilante y de los scripts queda anotado con la fecha, cuántos artículos y el valor de antes y de después.</p></div></div>
+            <div class="lt-grupo">Historial</div>
+            <div class="lt-item der"><span class="lt-punto"></span><div class="lt-tarjeta"><small>Historial · 1</small><h3>Revisá qué se cambió</h3><p>Cada cambio de la web, del vigilante y de los scripts queda anotado con la fecha, cuántos artículos y el valor de antes y de después.</p></div></div>
           </div>
         </div>
 
         <div class="revisar" id="revisar">
-          <p class="marca" data-i18n="rev.marca">TIENDA EN LÍNEA</p>
-          <h2 data-i18n="rev.h2">Artículos por revisar</h2>
-          <p class="revisar-sub" id="pend-sub" data-i18n="rev.sub">Solo lo que está publicado ahora mismo en la tienda en línea y tiene algo pendiente: le falta algún dato o su foto no se ve bien.</p>
+          <p class="marca">TIENDA EN LÍNEA</p>
+          <h2>Artículos por revisar</h2>
+          <p class="revisar-sub" id="pend-sub">Solo lo que está publicado ahora mismo en la tienda en línea y tiene algo pendiente: le falta algo en Zoho o su foto no se ve bien.</p>
           <div class="pend-chips" id="pend-chips" role="group" aria-label="Filtrar por problema"></div>
           <div class="pend-escenario">
             <ul class="pend-pista" id="pend-pista" aria-label="Artículos por revisar" tabindex="0"></ul>
@@ -265,44 +267,169 @@
         </div>
       </section>
 
+      <section id="cxc" class="pagina oculto">
+        <h1>Estados de cuenta</h1>
+        <p class="sub-oscuro">El envío es un solo correo: mensaje + PDF + listado de pendientes, juntos. No hay un botón aparte para cada cosa. Lo automático es filtrar en Zoho quién ya tiene saldo; el Excel o la foto solo sirven si te pasaron correos CXC nuevos.</p>
+        <div class="cxc-entrada">
+        <div class="cxc-drop" id="cxc-drop">
+          <input type="file" id="cxc-archivo" accept=".xlsx,.xlsm,.csv,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" hidden>
+          <div class="cxc-drop-vacio" id="cxc-drop-vacio">
+            <strong>Lista nueva de correos CXC</strong>
+            <span>Excel o foto, solo si hay que actualizar el campo CXC. No hace falta para enviar estados.</span>
+          </div>
+          <div class="cxc-drop-archivo oculto" id="cxc-drop-archivo">
+            <img id="cxc-drop-thumb" alt="" class="oculto">
+            <div class="cxc-drop-icono oculto" id="cxc-drop-icono">xlsx</div>
+            <div class="cxc-drop-datos">
+              <strong id="cxc-drop-nombre"></strong>
+              <span id="cxc-drop-meta"></span>
+            </div>
+            <button type="button" class="cxc-quitar" id="cxc-quitar" aria-label="Quitar archivo">Quitar</button>
+          </div>
+        </div>
+        <div class="cxc-filtro" id="cxc-filtro">
+          <strong>Cargar clientes de Zoho</strong>
+          <span>Mes o Año. Un mes que ya cerró es todo el mes, o un rango que vos pongas. El mes de ahora: hasta hoy, o del mismo día del mes anterior.</span>
+          <label class="casilla">
+            <input type="checkbox" id="cxc-solo-pendiente" checked><span></span>
+            <div>
+              <strong>Solo si tiene datos para enviar estado de cuenta</strong>
+              <small>Cuentas de Zoho con saldo pendiente en ese período.</small>
+            </div>
+          </label>
+          <div class="cxc-drops">
+            <div>
+              <label class="etiqueta">Mes o año</label>
+              <div class="drop" id="drop-cxc-mes"></div>
+            </div>
+            <div>
+              <label class="etiqueta" id="cxc-tiempo-etiqueta">Tiempo</label>
+              <div class="drop" id="drop-cxc-tiempo"></div>
+            </div>
+          </div>
+          <div class="cxc-rango oculto" id="cxc-rango-caja">
+            <div>
+              <label class="etiqueta" for="cxc-desde">Desde</label>
+              <input type="date" id="cxc-desde">
+            </div>
+            <div>
+              <label class="etiqueta" for="cxc-hasta">Hasta</label>
+              <input type="date" id="cxc-hasta">
+            </div>
+          </div>
+          <div class="cxc-monto" id="cxc-monto">
+            <div>
+              <label class="etiqueta">Ordenar por monto</label>
+              <div class="drop" id="drop-cxc-monto"></div>
+            </div>
+            <div class="oculto" id="cxc-monto-caja">
+              <label class="etiqueta" for="cxc-monto-valor" id="cxc-monto-valor-etiqueta">Cantidad</label>
+              <input type="number" id="cxc-monto-valor" min="0" step="0.01" placeholder="Monto">
+            </div>
+          </div>
+          <div class="cxc-bucle" id="cxc-bucle">
+            <label class="etiqueta">Bucle / repetir</label>
+            <div class="drop" id="drop-cxc-bucle"></div>
+            <div class="cxc-bucle-extra oculto" id="cxc-bucle-caja">
+              <div id="cxc-bucle-dia-caja">
+                <label class="etiqueta">Día</label>
+                <div class="drop" id="drop-cxc-bucle-dia"></div>
+              </div>
+              <div id="cxc-bucle-hora-caja">
+                <label class="etiqueta" for="cxc-bucle-hora">Hora</label>
+                <input type="time" id="cxc-bucle-hora" value="08:00">
+              </div>
+            </div>
+            <p class="cxc-bucle-resumen" id="cxc-bucle-resumen"></p>
+            <button type="button" class="btn rojo oculto" id="cxc-bucle-confirmar">Confirmar inicio de bucle</button>
+            <button type="button" class="btn borde" id="cxc-plantilla">Editar plantilla de texto</button>
+          </div>
+          <button type="button" class="btn rojo" id="cxc-filtrar">Cargar clientes de Zoho</button>
+        </div>
+        </div>
+        <div id="cxc-leyendo" class="trabajo-card leyendo oculto" aria-live="polite">
+          <div class="trabajo-cabeza">
+            <em class="hist-marca ejecutando">Leyendo</em>
+            <strong id="cxc-leyendo-quien">—</strong>
+          </div>
+          <p id="cxc-leyendo-accion" class="trabajo-accion"></p>
+          <p id="cxc-leyendo-detalle" class="trabajo-detalle"></p>
+          <p id="cxc-leyendo-avance" class="trabajo-avance"></p>
+          <p id="cxc-leyendo-eta" class="trabajo-eta"></p>
+        </div>
+        <p class="hist-estado oculto" id="cxc-estado" aria-live="polite"></p>
+        <div class="hist-resumen oculto" id="cxc-resumen"></div>
+        <div class="oculto" id="cxc-tabla-caja">
+          <h2 class="cxc-previa-titulo">Vista previa</h2>
+          <p class="sub-oscuro" id="cxc-previa-ayuda">Son dos cosas distintas: <b>Poner correo CXC</b> (abajo) solo guarda el mail en Zoho de las filas marcadas, no manda nada. <b>Enviar estados de cuenta</b> manda el correo con PDF y listado. Al final de cada fila podés ver el PDF y el listado.</p>
+          <div class="previa-tabla-caja">
+          <table class="hist-tabla">
+            <thead>
+              <tr>
+                <th class="cxc-check-td">
+                  <label class="cxc-fila-check" title="Marcar o desmarcar todas">
+                    <input type="checkbox" id="cxc-marcar-todas" aria-label="Marcar o desmarcar todas"><span></span>
+                  </label>
+                </th>
+                <th>Empresa</th>
+                <th>Cuenta en Zoho</th>
+                <th>Correo oficial (no se toca)</th>
+                <th>CXC que ya tiene</th>
+                <th>CXC que se le pondría</th>
+                <th>Monto</th>
+                <th>Qué pasaría</th>
+                <th>Ver PDF</th>
+                <th>Ver listado</th>
+              </tr>
+            </thead>
+            <tbody id="cxc-filas"></tbody>
+          </table>
+          </div>
+        </div>
+        <div class="acciones oculto" id="cxc-acciones">
+          <button type="button" class="btn rojo" id="cxc-aplicar">Poner correo CXC</button>
+          <button type="button" class="btn borde" id="cxc-enviar">Enviar estados de cuenta</button>
+        </div>
+      </section>
+
       <section id="historial" class="pagina oculto">
-        <h1 data-i18n="hist.h1">Historial</h1>
-        <p class="sub-oscuro" data-i18n="hist.sub">Todo lo que se cambió desde la web, el vigilante y los scripts. Abrí un cambio para ver los artículos con su valor de antes y de después.</p>
+        <h1>Historial</h1>
+        <p class="sub-oscuro">Todo lo que se cambió en Zoho desde la web, el vigilante y los scripts. Abrí un cambio para ver los artículos con su valor de antes y de después.</p>
         <div class="hist-barra">
-          <input id="hist-buscar" placeholder="Buscar por cambio, SKU o nombre…" aria-label="Buscar en el historial" data-i18n-placeholder="hist.search">
+          <input id="hist-buscar" placeholder="Buscar por cambio, SKU o nombre…" aria-label="Buscar en el historial">
           <div class="drop" id="drop-origen"></div>
           <button type="button" class="btn borde" id="hist-actualizar">
             <span class="cargando" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-            <span id="hist-actualizar-texto" data-i18n="hist.refresh">Actualizar</span>
+            <span id="hist-actualizar-texto">Actualizar</span>
           </button>
         </div>
         <p class="hist-estado oculto" id="hist-estado" aria-live="polite"></p>
         <div id="hist-cargando" class="hist-cargando oculto" aria-live="polite" aria-busy="true">
           <span class="cargando hist-cargando-icono" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-          <p id="hist-cargando-texto" data-i18n="hist.loading">Refrescando…</p>
+          <p id="hist-cargando-texto">Refrescando…</p>
         </div>
         <div class="hist-resumen" id="hist-resumen"></div>
         <div class="hist-lista" id="hist-lista"></div>
       </section>
 
       <section id="cambios" class="pagina oculto">
-        <h1 data-i18n="bulk.h1">cambios-masivos</h1>
-        <p class="sub-oscuro" data-i18n="bulk.sub">Elegí una o varias subfamilias. Después aparecen los campos que se pueden cambiar.</p>
-        <label class="etiqueta" data-i18n="bulk.subfam">Subfamilia</label>
+        <h1>zoho-cambios</h1>
+        <p class="sub-oscuro">Elegí una o varias subfamilias. Están todas, incluso inactivos y los que no tienen subfamilia. Después aparecen los campos que se pueden cambiar.</p>
+        <label class="etiqueta">Subfamilia</label>
         <div class="fila-sub">
           <div class="drop" id="drop-sub"></div>
           <div class="filtro" id="filtro">
             <button type="button" class="filtro-btn" id="filtro-btn" aria-label="Filtros">
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5L3 5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-              <span data-i18n="bulk.filter">Filtrar</span>
+              Filtrar
               <b id="filtro-cuenta" class="oculto">0</b>
             </button>
             <div class="filtro-pop oculto" id="filtro-pop">
               <div class="filtro-cols">
                 <ul class="filtro-cats" id="filtro-cats"></ul>
                 <div class="filtro-opciones">
-                  <input id="filtro-buscar" placeholder="Buscar…" data-i18n-placeholder="bulk.search">
-                  <label class="filtro-todo"><input type="checkbox" id="filtro-todo"><span class="filtro-check"></span><span class="filtro-txt" data-i18n="bulk.all">(Seleccionar todo)</span></label>
+                  <input id="filtro-buscar" placeholder="Buscar…">
+                  <label class="filtro-todo"><input type="checkbox" id="filtro-todo"><span></span>(Seleccionar todo)</label>
                   <div id="filtro-lista"></div>
                 </div>
               </div>
@@ -311,129 +438,119 @@
                   <small id="indice-fecha" class="indice-fecha"></small>
                   <small id="indice-cuota" class="indice-cuota"></small>
                 </div>
-                <button type="button" class="btn borde" id="indice-actualizar" title="Volver a leer el catálogo" data-i18n="bulk.update">Actualizar datos</button>
-                <button type="button" class="btn borde" id="filtro-limpiar" data-i18n="bulk.clear">Limpiar filtros</button>
-                <button type="button" class="btn rojo" id="filtro-listo" data-i18n="bulk.ok">Aceptar</button>
+                <button type="button" class="btn borde" id="indice-actualizar" title="Volver a leer los artículos de Zoho">Actualizar datos</button>
+                <button type="button" class="btn borde" id="filtro-limpiar">Limpiar filtros</button>
+                <button type="button" class="btn rojo" id="filtro-listo">Aceptar</button>
               </div>
             </div>
           </div>
-          <button type="button" class="btn borde" id="ir-parejas" title="Abre artículos compuestos con las subfamilias elegidas" data-i18n="bulk.pairs">Ver parejas para kits</button>
+          <button type="button" class="btn borde" id="ir-parejas" title="Abre artículos compuestos con las subfamilias elegidas">Ver parejas para kits</button>
         </div>
         <div class="chips" id="chips"></div>
         <p class="conteo-filtro oculto" id="conteo-filtro"></p>
         <div class="resumen-sub oculto" id="resumen-sub" aria-live="polite"></div>
-        <div id="trabajo-card" class="trabajo-card oculto" aria-live="polite">
-          <div class="trabajo-cabeza">
-            <em class="hist-marca ejecutando">Ejecutándose</em>
-            <strong id="trabajo-quien">—</strong>
-          </div>
-          <p id="trabajo-accion" class="trabajo-accion"></p>
-          <p id="trabajo-detalle" class="trabajo-detalle"></p>
-          <p id="trabajo-avance" class="trabajo-avance"></p>
-          <p id="trabajo-eta" class="trabajo-eta"></p>
-        </div>
         <div id="opciones" class="panel oculto">
           <div class="opciones-par">
             <div class="opciones-col">
-              <h3 class="opciones-titulo" data-i18n="bulk.data">Datos del artículo</h3>
-              <label class="etiqueta" data-i18n="bulk.store">Aplicar en la tienda</label>
+              <h3 class="opciones-titulo">Datos del artículo</h3>
+              <label class="etiqueta">Aplicar en la tienda</label>
               <div class="drop" id="drop-aplica"></div>
-              <label class="etiqueta" data-i18n="bulk.pct">Porcentaje de utilidad</label>
+              <label class="etiqueta">Porcentaje de utilidad</label>
               <div class="campo-brillo"><input id="pct" inputmode="decimal" placeholder="Por ejemplo, 55"></div>
-              <label class="etiqueta" data-i18n="bulk.est">% Estimado de utilidad</label>
+              <label class="etiqueta">% Estimado de utilidad</label>
               <div class="campo-brillo"><input id="estimado" inputmode="decimal" placeholder="Por ejemplo, 40"></div>
-              <p class="nota" data-i18n="bulk.note">Si se dejan vacíos, el porcentaje y el estimado no se tocan.</p>
-              <label class="etiqueta" data-i18n="bulk.unit">Unidades</label>
+              <p class="nota">Si se dejan vacíos, el porcentaje y el estimado no se tocan.</p>
+              <label class="etiqueta">Unidades</label>
               <div class="drop" id="drop-unidad"></div>
-              <label class="etiqueta" data-i18n="bulk.sec">Sección</label>
+              <label class="etiqueta">Sección</label>
               <div class="drop" id="drop-seccion"></div>
-              <label class="etiqueta" data-i18n="bulk.shelf">Estante</label>
+              <label class="etiqueta">Estante</label>
               <div class="drop" id="drop-estante"></div>
             </div>
             <span class="separador-vertical" aria-hidden="true"></span>
             <div class="opciones-col">
-              <h3 class="opciones-titulo" data-i18n="bulk.price.title">Precio en la tienda</h3>
-              <label class="etiqueta" data-i18n="bulk.price">Actualizar precio en la tienda</label>
+              <h3 class="opciones-titulo">Precio en la tienda</h3>
+              <label class="etiqueta">Actualizar precio en la tienda</label>
               <div class="drop" id="drop-precio"></div>
-              <p class="nota" data-i18n="bulk.price.note">Marca o quita la casilla "Actualizar Precio" en los artículos elegidos.</p>
+              <p class="nota">Marca o quita la casilla "Actualizar Precio" de Zoho en los artículos elegidos.</p>
             </div>
           </div>
           <p id="estado" class="nota"></p>
           <div class="acciones">
-            <button type="button" class="btn borde" id="previa" data-i18n="bulk.prev">Vista previa</button>
-            <button type="button" class="btn rojo" id="aplicar" data-i18n="bulk.apply">Aplicar cambios</button>
-            <button type="button" class="btn borde oculto" id="detener" data-i18n="bulk.stop">Detener</button>
-            <button type="button" class="btn borde btn-reanudar oculto" id="reanudar" data-i18n="bulk.resume">Reanudar cambio detenido</button>
-            <button type="button" class="btn borde btn-revertir oculto" id="revertir" data-i18n="bulk.undo">Revertir estos cambios</button>
-            <a class="btn borde hist-excel oculto" id="excel-hechos" download data-i18n="bulk.xlsx">Descargar Excel con los cambios hechos</a>
-            <button type="button" class="btn borde btn-quitar" id="quitar-cambios" title="Pone todos los campos en No cambiar. No escribe nada." data-i18n="bulk.reset">Dejar todo en No cambiar</button>
+            <button type="button" class="btn borde" id="previa">Vista previa</button>
+            <button type="button" class="btn rojo" id="aplicar">Aplicar en Zoho</button>
+            <button type="button" class="btn borde oculto" id="detener">Detener</button>
+            <button type="button" class="btn borde btn-reanudar oculto" id="reanudar">Reanudar cambio detenido</button>
+            <button type="button" class="btn borde btn-revertir oculto" id="revertir">Revertir estos cambios</button>
+            <a class="btn borde hist-excel oculto" id="excel-hechos" download>Descargar Excel con los cambios hechos</a>
+            <button type="button" class="btn borde btn-quitar" id="quitar-cambios" title="Pone todos los campos en No cambiar. No toca Zoho.">Dejar todo en No cambiar</button>
           </div>
         </div>
       </section>
 
       <section id="compuestos" class="pagina oculto">
-        <h1 data-i18n="kits.h1">artículos compuestos</h1>
-        <p class="sub-oscuro" data-i18n="kits.sub">Acá aparecen solas las parejas que se pueden armar (condensadora E/GO + evaporadora I/GI del mismo modelo). Filtrá por subfamilia, abrí una y se rellena el kit. También podés pegar SKU a mano.</p>
+        <h1>artículos compuestos</h1>
+        <p class="sub-oscuro">Acá aparecen parejas inventadas de dos piezas. Filtrá por grupo, abrí una y se rellena el conjunto. También podés pegar códigos a mano.</p>
         <div id="comp-lista-caja" class="panel">
-          <h3 class="opciones-titulo" data-i18n="kits.list">Parejas en el catálogo</h3>
-          <p class="nota" id="comp-lista-fecha" data-i18n="kits.local">Se arma con los datos locales. No gasta APIs.</p>
-          <label class="etiqueta" data-i18n="bulk.subfam">Subfamilia</label>
+          <h3 class="opciones-titulo">Parejas en el catálogo</h3>
+          <p class="nota" id="comp-lista-fecha">Se arma con los datos locales. No gasta APIs.</p>
+          <label class="etiqueta">Subfamilia</label>
           <div class="fila-sub">
             <div class="drop" id="drop-comp-sub"></div>
           </div>
           <div class="pend-chips" id="comp-chips" role="group" aria-label="Filtrar parejas"></div>
-          <input id="comp-lista-buscar" placeholder="Buscar por SKU o modelo…" aria-label="Buscar parejas" data-i18n-placeholder="kits.search">
+          <input id="comp-lista-buscar" placeholder="Buscar por SKU o modelo…" aria-label="Buscar parejas">
           <p class="conteo-filtro" id="comp-lista-conteo"></p>
           <div class="comp-lista" id="comp-lista"></div>
         </div>
-        <label class="etiqueta" for="comp-pega" data-i18n="kits.paste">O pegá los artículos a mano</label>
-        <textarea id="comp-pega" class="comp-pega" rows="5" placeholder="TAC-12CSDI/SZGO&#10;TAC-12CSDI/SZGI" data-i18n-placeholder="kits.paste.ph"></textarea>
-        <p class="nota" data-i18n="kits.paste.note">Uno por línea: SKU, nombre o el texto con #SKU. Mínimo dos.</p>
+        <label class="etiqueta" for="comp-pega">O pegá los artículos a mano</label>
+        <textarea id="comp-pega" class="comp-pega" rows="5" placeholder="TAC-12CSDI/SZGO&#10;TAC-12CSDI/SZGI"></textarea>
+        <p class="nota">Uno por línea: SKU, nombre o el texto con #SKU. Mínimo dos.</p>
         <div class="acciones">
-          <button type="button" class="btn rojo" id="comp-buscar" data-i18n="kits.find">Buscar en los datos</button>
-          <button type="button" class="btn borde" id="comp-limpiar" data-i18n="kits.clear">Limpiar</button>
+          <button type="button" class="btn rojo" id="comp-buscar">Buscar en los datos</button>
+          <button type="button" class="btn borde" id="comp-limpiar">Limpiar</button>
         </div>
         <p class="nota" id="comp-estado"></p>
         <div id="comp-hallados" class="oculto"></div>
         <div id="comp-form" class="panel oculto">
-          <h3 class="opciones-titulo" data-i18n="kits.form">Datos del kit (ya rellenados)</h3>
+          <h3 class="opciones-titulo">Datos del kit (ya rellenados)</h3>
           <p id="comp-validacion" class="comp-validacion"></p>
           <div class="opciones-par">
             <div class="opciones-col">
-              <label class="etiqueta" for="comp-nombre" data-i18n="kits.name">Nombre</label>
+              <label class="etiqueta" for="comp-nombre">Nombre</label>
               <div class="campo-brillo"><textarea id="comp-nombre" rows="2"></textarea></div>
-              <label class="etiqueta" for="comp-sku" data-i18n="kits.sku">SKU nuevo del conjunto</label>
+              <label class="etiqueta" for="comp-sku">SKU nuevo del conjunto</label>
               <div class="campo-brillo"><input id="comp-sku"></div>
-              <label class="etiqueta" for="comp-unidad" data-i18n="kits.unit">Unidad</label>
+              <label class="etiqueta" for="comp-unidad">Unidad</label>
               <div class="campo-brillo"><input id="comp-unidad"></div>
-              <label class="etiqueta" for="comp-familia" data-i18n="kits.fam">Familia</label>
+              <label class="etiqueta" for="comp-familia">Familia</label>
               <div class="campo-brillo"><input id="comp-familia"></div>
-              <label class="etiqueta" for="comp-subfamilia" data-i18n="kits.subf">Subfamilia</label>
+              <label class="etiqueta" for="comp-subfamilia">Subfamilia</label>
               <div class="campo-brillo"><input id="comp-subfamilia"></div>
             </div>
             <span class="separador-vertical" aria-hidden="true"></span>
             <div class="opciones-col">
-              <label class="etiqueta" for="comp-precio" data-i18n="kits.sale">Precio de venta</label>
+              <label class="etiqueta" for="comp-precio">Precio de venta</label>
               <div class="campo-brillo"><input id="comp-precio" inputmode="decimal"></div>
-              <label class="etiqueta" for="comp-costo" data-i18n="kits.cost">Precio de coste</label>
+              <label class="etiqueta" for="comp-costo">Precio de coste</label>
               <div class="campo-brillo"><input id="comp-costo" inputmode="decimal"></div>
-              <label class="etiqueta" for="comp-desc" data-i18n="kits.desc">Descripción</label>
+              <label class="etiqueta" for="comp-desc">Descripción</label>
               <div class="campo-brillo"><textarea id="comp-desc" rows="2"></textarea></div>
               <div class="comp-notas">
                 <div class="comp-nota">
-                  <strong data-i18n="kits.store.t">Tienda en línea</strong>
-                  <p data-i18n="kits.store.p">El kit se crea en el catálogo, pero no se marca para la página. Cuando la web ya lo tenga publicado, ahí se marca.</p>
+                  <strong>Tienda en línea</strong>
+                  <p>El kit se crea en Zoho, pero no se marca para la página. Cuando la web ya lo tenga publicado, ahí se marca.</p>
                 </div>
                 <div class="comp-nota">
-                  <strong data-i18n="kits.stock.t">Cuántos se pueden vender</strong>
-                  <p data-i18n="kits.stock.p">No hay que escribirle un stock al kit. Si hay 1 condensadora y 1 evaporadora, se puede vender 1 sistema. Si hay 2 y 2, se pueden vender 2.</p>
+                  <strong>Cuántos se pueden vender</strong>
+                  <p>No hay que escribirle un stock al conjunto. Si hay 1 pieza A y 1 pieza B, se puede armar 1. Si hay 2 y 2, se pueden armar 2.</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <div id="comp-previa" class="oculto">
-          <h3 class="opciones-titulo" data-i18n="kits.prev">Vista previa</h3>
+          <h3 class="opciones-titulo">Vista previa</h3>
           <p id="comp-previa-resumen" class="previa-resumen"></p>
           <div class="previa-tabla-caja">
             <table class="hist-tabla previa-tabla">
@@ -443,49 +560,49 @@
           </div>
           <p class="costo-api" id="comp-costo-api"></p>
           <div class="acciones">
-            <button type="button" class="btn borde" id="comp-excel" data-i18n="kits.xlsx">Descargar Excel</button>
-            <button type="button" class="btn rojo" id="comp-crear" data-i18n="kits.create">Crear kit</button>
+            <button type="button" class="btn borde" id="comp-excel">Descargar Excel</button>
+            <button type="button" class="btn rojo" id="comp-crear">Crear en Zoho</button>
           </div>
         </div>
       </section>
 
       <section id="vigilante" class="pagina oculto">
-        <h1 data-i18n="watch.h1">vigilante</h1>
-        <p class="sub-oscuro" data-i18n="watch.sub">Activá la vigilancia. A la derecha elegís la subfamilia, el tiempo y qué querés revisar. Todo lo que haga queda anotado para bajarlo en Excel.</p>
+        <h1>vigilante</h1>
+        <p class="sub-oscuro">Activá la vigilancia. A la derecha elegís la subfamilia, el tiempo y qué querés revisar. Todo lo que haga queda anotado para bajarlo en Excel.</p>
         <div class="vig-layout">
           <aside class="panel lateral">
             <label class="interruptor">
               <input type="checkbox" id="activar">
               <span class="pista"><span class="perilla"></span></span>
-              <span class="texto" data-i18n="watch.on">Activar vigilante</span>
+              <span class="texto">Activar vigilante</span>
             </label>
-            <p class="nota" data-i18n="watch.note">Mientras esté activo, revisa el catálogo en el tiempo elegido.</p>
+            <p class="nota">Mientras esté activo, revisa Zoho en el tiempo elegido.</p>
           </aside>
           <div id="panel-vig" class="panel oculto">
             <div class="vig-cabeza">
               <div class="vig-campos">
-                <label class="etiqueta" data-i18n="bulk.subfam">Subfamilia</label>
+                <label class="etiqueta">Subfamilia</label>
                 <div class="drop" id="drop-familia"></div>
-                <label class="etiqueta" data-i18n="watch.every">Cada cuánto revisar</label>
+                <label class="etiqueta">Cada cuánto revisar</label>
                 <div class="drop" id="drop-tiempo"></div>
               </div>
-              <a class="btn borde hist-excel" id="vig-excel" href="/api/vigilante.xlsx" download="vigilante.xlsx" data-i18n="watch.xlsx">Descargar Excel</a>
+              <a class="btn borde hist-excel" id="vig-excel" href="/api/vigilante.xlsx" download="vigilante.xlsx">Descargar Excel</a>
             </div>
             <div id="opciones-vig" class="oculto">
               <label class="casilla">
                 <input type="checkbox" id="vig-fotos"><span></span>
-                <div><strong data-i18n="watch.photos.t">Cambios de fotos</strong><small data-i18n="watch.photos.p">Revisa los artículos sin foto. Cuando tengan foto, pone los valores usuales y los deja listos para el siguiente barrido.</small></div>
+                <div><strong>Cambios de fotos</strong><small>Revisa los artículos de Zoho sin foto. Cuando tengan foto, pone los valores usuales y los deja listos para el siguiente barrido.</small></div>
               </label>
               <label class="casilla">
                 <input type="checkbox" id="vig-sin-stock"><span></span>
-                <div><strong data-i18n="watch.out.t">Sin stock</strong><small data-i18n="watch.out.p">Revisa todos los items que tienen foto pero disponible para la venta en 0, para quitarles el check en la tienda.</small></div>
+                <div><strong>Sin stock</strong><small>Revisa todos los items que tienen foto pero disponible para la venta en 0, para quitarles el check en la tienda.</small></div>
               </label>
               <label class="casilla">
                 <input type="checkbox" id="vig-con-stock"><span></span>
-                <div><strong data-i18n="watch.in.t">Con stock e imagen</strong><small data-i18n="watch.in.p">Revisa todos los items que tienen disponible para la venta e imagen, y los agrega a la tienda.</small></div>
+                <div><strong>Con stock e imagen</strong><small>Revisa todos los items que tienen disponible para la venta e imagen, y los agrega a la tienda.</small></div>
               </label>
             </div>
-            <p class="vig-log-titulo"><span data-i18n="watch.log">Actividad</span> <small id="vig-excel-cuenta"></small></p>
+            <p class="vig-log-titulo">Actividad <small id="vig-excel-cuenta"></small></p>
             <pre id="bitacora"></pre>
           </div>
         </div>
@@ -495,20 +612,20 @@
       <footer class="pie">
         <div class="pie-cuerpo">
           <div class="pie-marca">
-            <span class="logo logo-texto pie-logo" aria-hidden="true">MB</span>
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c4403c'/%3E%3C/svg%3E" alt="" class="pie-logo">
             <div>
-              <h4 data-i18n="foot.brand">Manejo masivo de bases de datos · Demo</h4>
-              <p data-i18n="foot.lead">Simulación estática con datos ficticios.</p>
+              <h4>Catálogo de muestra</h4>
+              <p>Demo con datos inventados. No es un sistema real.</p>
             </div>
           </div>
           <div class="pie-grid">
-            <div><h4 data-i18n="foot.access">Acceso</h4><p data-i18n="foot.access.p" data-i18n-html>Demo estática<br>Sin servidor real</p></div>
-            <div><h4 data-i18n="foot.time">Hora local</h4><p id="pie-hora">--:--</p></div>
-            <div><h4 data-i18n="foot.ver">Versión</h4><p data-i18n="foot.ver.p">Edición 2026</p></div>
+            <div><h4>Acceso</h4><p>Demo pública<br>Datos inventados</p></div>
+            <div><h4>Hora local</h4><p id="pie-hora">--:--</p></div>
+            <div><h4>Versión</h4><p>Edición 2026</p></div>
           </div>
         </div>
         <div class="pie-base">
-          <p class="pie-firma" data-i18n="foot.by">CREADO POR ALEXANDER ZAMBRANA RODRIGUEZ</p>
+          <p class="pie-firma">DEMO DE PORTAFOLIO · DATOS INVENTADOS</p>
         </div>
       </footer>
     </main>
@@ -517,34 +634,34 @@
 
 <div id="modal" class="modal oculto">
   <div class="modal-card">
-    <h3 data-i18n="modal.confirm.t">Confirmar cambio</h3>
+    <h3>Confirmar cambio en Zoho</h3>
     <p id="modal-texto"></p>
     <p class="costo-api" id="modal-costo"></p>
-    <p data-i18n="modal.confirm.q">¿Confirmás el cambio?</p>
+    <p>¿Confirmás el cambio?</p>
     <div class="acciones derecha">
-      <button type="button" class="btn borde" id="cancelar" data-i18n="modal.cancel">Cancelar</button>
-      <button type="button" class="btn borde" id="confirmar-excel" title="Al terminar baja un Excel con los valores que quedaron guardados" data-i18n="modal.xlsx">Sí, aplicar y descargar Excel</button>
-      <button type="button" class="btn rojo" id="confirmar" data-i18n="modal.yes">Sí, aplicar</button>
+      <button type="button" class="btn borde" id="cancelar">Cancelar</button>
+      <button type="button" class="btn borde" id="confirmar-excel" title="Al terminar baja un Excel con los valores que quedaron en Zoho">Sí, aplicar y descargar Excel</button>
+      <button type="button" class="btn rojo" id="confirmar">Sí, aplicar</button>
     </div>
   </div>
 </div>
 <div id="revertir-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="revertir-titulo">
   <div class="modal-card">
-    <h3 id="revertir-titulo" data-i18n="modal.undo.t">Revertir cambio</h3>
+    <h3 id="revertir-titulo">Revertir cambio en Zoho</h3>
     <p id="revertir-texto"></p>
     <p class="costo-api" id="revertir-costo"></p>
-    <p class="hist-nota" data-i18n="modal.undo.note">Solo se devuelven los campos que siguen con el valor que puso este cambio. Si alguien los cambió después, esos no se tocan.</p>
-    <p data-i18n="modal.undo.q">¿Confirmás la reversión?</p>
+    <p class="hist-nota">Solo se devuelven los campos que siguen con el valor que puso este cambio. Si alguien los cambió después en Zoho, esos no se tocan.</p>
+    <p>¿Confirmás la reversión?</p>
     <div class="acciones derecha">
-      <button type="button" class="btn borde" id="revertir-cancelar" data-i18n="modal.cancel">Cancelar</button>
-      <button type="button" class="btn rojo" id="revertir-confirmar" data-i18n="modal.undo.yes">Sí, revertir</button>
+      <button type="button" class="btn borde" id="revertir-cancelar">Cancelar</button>
+      <button type="button" class="btn rojo" id="revertir-confirmar">Sí, revertir</button>
     </div>
   </div>
 </div>
 
 <div id="previa-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="previa-titulo">
   <div class="modal-card previa-card">
-    <h3 id="previa-titulo" data-i18n="modal.prev.t">Vista previa del cambio</h3>
+    <h3 id="previa-titulo">Vista previa del cambio</h3>
     <p class="previa-resumen" id="previa-resumen"></p>
     <div class="previa-tabla-caja">
       <table class="hist-tabla previa-tabla">
@@ -555,9 +672,9 @@
     <p class="costo-api" id="previa-costo"></p>
     <p class="hist-nota" id="previa-nota"></p>
     <div class="acciones derecha">
-      <button type="button" class="btn borde" id="previa-cerrar" data-i18n="modal.close">Cerrar</button>
-      <button type="button" class="btn borde" id="previa-excel" data-i18n="modal.xlsx2">Descargar Excel</button>
-      <button type="button" class="btn rojo" id="previa-aplicar" data-i18n="modal.apply">Aplicar estos cambios</button>
+      <button type="button" class="btn borde" id="previa-cerrar">Cerrar</button>
+      <button type="button" class="btn borde" id="previa-excel">Descargar Excel</button>
+      <button type="button" class="btn rojo" id="previa-aplicar">Aplicar estos cambios</button>
     </div>
   </div>
 </div>
@@ -565,17 +682,55 @@
   <div class="modal-card tienda-card">
     <div class="tienda-foto" id="tienda-foto"></div>
     <div class="tienda-datos">
-      <p class="tienda-etiqueta" data-i18n="store.tag">ASÍ SE VE EN LA TIENDA</p>
+      <p class="tienda-etiqueta">ASÍ SE VE EN LA TIENDA</p>
       <h3 id="tienda-nombre">Cargando…</h3>
       <p class="tienda-sku" id="tienda-sku"></p>
       <p class="tienda-precio" id="tienda-precio"></p>
-      <p class="tienda-iva" data-i18n="store.iva">Todos los precios incluyen IVA.</p>
+      <p class="tienda-iva">Todos los precios incluyen IVA.</p>
       <p class="tienda-stock" id="tienda-stock"></p>
       <div class="acciones">
-        <button type="button" class="btn borde" id="tienda-cerrar" data-i18n="modal.close">Cerrar</button>
-        <button type="button" class="btn rojo" id="tienda-abrir" data-i18n="store.search">Buscar en la tienda ↗</button>
+        <button type="button" class="btn borde" id="tienda-cerrar">Cerrar</button>
+        <button type="button" class="btn rojo" id="tienda-abrir">Buscar en la tienda ↗</button>
       </div>
       <p class="tienda-copiado oculto" id="tienda-copiado"></p>
+    </div>
+  </div>
+</div>
+<div id="cxc-listado-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="cxc-listado-titulo">
+  <div class="modal-card previa-card">
+    <h3 id="cxc-listado-titulo">Listado pendiente</h3>
+    <p class="previa-resumen" id="cxc-listado-resumen"></p>
+    <div class="previa-tabla-caja">
+      <table class="hist-tabla previa-tabla">
+        <thead>
+          <tr>
+            <th>Factura</th>
+            <th>Fecha</th>
+            <th>Vence</th>
+            <th>Total</th>
+            <th>Saldo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="cxc-listado-filas"></tbody>
+      </table>
+    </div>
+    <div class="acciones derecha">
+      <button type="button" class="btn borde" id="cxc-listado-cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+<div id="cxc-plantilla-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="cxc-plantilla-titulo">
+  <div class="modal-card cxc-plantilla-card">
+    <h3 id="cxc-plantilla-titulo">Plantilla del correo</h3>
+    <p>Este texto se pega en todos los estados de cuenta: el envío a mano y el bucle. El PDF y el listado van adjuntos igual.</p>
+    <label class="etiqueta" for="cxc-plantilla-asunto">Asunto</label>
+    <input id="cxc-plantilla-asunto" maxlength="200" autocomplete="off">
+    <label class="etiqueta" for="cxc-plantilla-cuerpo">Mensaje</label>
+    <textarea id="cxc-plantilla-cuerpo" rows="10" maxlength="20000"></textarea>
+    <div class="acciones derecha">
+      <button type="button" class="btn borde" id="cxc-plantilla-cerrar">Cancelar</button>
+      <button type="button" class="btn rojo" id="cxc-plantilla-guardar">Guardar plantilla</button>
     </div>
   </div>
 </div>
@@ -588,17 +743,16 @@
         <circle cx="12" cy="17.5" r="1.2" fill="currentColor"/>
       </svg>
     </div>
-    <h3 id="aviso-titulo" data-i18n="warn.t">Sin artículos para ese filtro</h3>
+    <h3 id="aviso-titulo">Sin artículos para ese filtro</h3>
     <p id="aviso-texto"></p>
     <ul id="aviso-lista" class="aviso-lista"></ul>
     <div class="acciones derecha">
-      <button type="button" class="btn borde oculto" id="aviso-cancelar" data-i18n="modal.cancel">Cancelar</button>
-      <button type="button" class="btn rojo" id="aviso-ok" data-i18n="warn.ok">Entendido</button>
+      <button type="button" class="btn borde oculto" id="aviso-cancelar">Cancelar</button>
+      <button type="button" class="btn rojo" id="aviso-ok">Entendido</button>
     </div>
   </div>
 </div>
-<script src="i18n.js?v=demo9"></script>
-<script src="mock.js?v=demo3"></script>
-<script src="app.js?v=demo10"></script>
+<script src="/mock.js?v=3"></script>
+<script src="/app.js?v=49"></script>
 </body>
 </html>

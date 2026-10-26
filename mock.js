@@ -1,892 +1,802 @@
-/* Demo estática: intercepta fetch(/api/...) con datos ficticios. Sin servidor real. */
+/* Demo de portafolio: mismas pantallas que la herramienta, con datos inventados.
+   No llama a Zoho, no usa secretos y no escribe nada real. */
 (function () {
   const originalFetch = window.fetch.bind(window);
-  const LS_HIST = "demo-masivo-historial";
-  const LS_VIG = "demo-masivo-vigilante";
-  const LS_CORR = "demo-masivo-corregidos";
-  const LS_SES = "demo-masivo-sesion";
-  const LS_KITS = "demo-masivo-kits";
+  const CLAVES = ["unidad", "estado", "familia", "imagen", "tienda", "precio", "venta", "stock", "seccion", "cabys", "compuesto", "pareja"];
+  const FILTROS = [
+    { clave: "unidad", titulo: "Unidades", opciones: ["No tienen unidad", "Medida 1", "Medida 2", "Medida 3"] },
+    { clave: "estado", titulo: "Estado", opciones: ["Activo", "Inactivo"] },
+    { clave: "familia", titulo: "Familia", opciones: ["Con familia", "No tienen familia"] },
+    { clave: "imagen", titulo: "Imagen", opciones: ["Con imagen", "Sin imagen"] },
+    { clave: "tienda", titulo: "Aplica tienda en línea", opciones: ["Marcado", "Sin marcar"] },
+    { clave: "precio", titulo: "Actualizar precio", opciones: ["Con marcar", "Sin marcar"] },
+    { clave: "venta", titulo: "Precio de venta", opciones: ["Con precio", "Sin precio"] },
+    { clave: "stock", titulo: "Stock", opciones: ["Con stock", "Stock en 0"] },
+    { clave: "seccion", titulo: "Sección", opciones: ["Con sección", "Sin sección"] },
+    { clave: "cabys", titulo: "CABYS", opciones: ["Con CABYS", "Sin CABYS"] },
+    { clave: "compuesto", titulo: "Artículo compuesto", opciones: ["Compuesto", "Simple"] },
+    { clave: "pareja", titulo: "Pareja de kit", opciones: ["Listo para kit", "Ya tiene kit", "Falta una pieza", "No aplica"] },
+  ];
+  const SUBS = ["Grupo muestra A", "Grupo muestra B", "Grupo muestra C", "Grupo muestra D"];
 
-  const PAREJAS_BASE = [
-    {
-      estado: "listo",
-      base: "MOD-A-1817",
-      sku_kit: "MOD-A-1817",
-      subfamilia: "Subfamilia 2",
-      subfamilias: ["Subfamilia 2"],
-      cond: { id: "p-a-e", sku: "MOD-A-1817-E", nombre: "Condensadora modelo A 18000", precio: 185000, costo: 120000, stock: 4, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "condensadora" },
-      evap: { id: "p-a-i", sku: "MOD-A-1817-I", nombre: "Evaporadora modelo A 18000", precio: 95000, costo: 62000, stock: 3, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "evaporadora" },
-    },
-    {
-      estado: "listo",
-      base: "MOD-B-1820W",
-      sku_kit: "MOD-B-1820W",
-      subfamilia: "Subfamilia 2",
-      subfamilias: ["Subfamilia 2"],
-      cond: { id: "p-b-e", sku: "MOD-B-1820W-E", nombre: "Condensadora modelo B 18000W", precio: 198000, costo: 128000, stock: 2, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "condensadora" },
-      evap: { id: "p-b-i", sku: "MOD-B-1820W-I", nombre: "Evaporadora modelo B 18000W", precio: 102000, costo: 66000, stock: 2, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "evaporadora" },
-    },
-    {
-      estado: "listo",
-      base: "TAC-12CSDI",
-      sku_kit: "TAC-12CSDI",
-      subfamilia: "Subfamilia 3",
-      subfamilias: ["Subfamilia 3"],
-      cond: { id: "p-c-go", sku: "TAC-12CSDI/SZGO", nombre: "Condensadora TAC 12", precio: 164000, costo: 108000, stock: 5, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 3", rol: "condensadora" },
-      evap: { id: "p-c-gi", sku: "TAC-12CSDI/SZGI", nombre: "Evaporadora TAC 12", precio: 88000, costo: 54000, stock: 6, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 3", rol: "evaporadora" },
-    },
-    {
-      estado: "ya_tiene_kit",
-      base: "MOD-D-2418",
-      sku_kit: "MOD-D-2418",
-      subfamilia: "Subfamilia 2",
-      subfamilias: ["Subfamilia 2"],
-      cond: { id: "p-d-e", sku: "MOD-D-2418-E", nombre: "Condensadora modelo D 24000", precio: 240000, costo: 155000, stock: 1, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "condensadora" },
-      evap: { id: "p-d-i", sku: "MOD-D-2418-I", nombre: "Evaporadora modelo D 24000", precio: 118000, costo: 76000, stock: 1, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 2", rol: "evaporadora" },
-    },
-    {
-      estado: "incompleto",
-      base: "MOD-E-1210",
-      sku_kit: "MOD-E-1210",
-      subfamilia: "Subfamilia 4",
-      subfamilias: ["Subfamilia 4"],
-      cond: { id: "p-e-e", sku: "MOD-E-1210-E", nombre: "Condensadora modelo E 12000", precio: 142000, costo: 90000, stock: 3, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 4", rol: "condensadora" },
-      evap: null,
-    },
-    {
-      estado: "incompleto",
-      base: "CAN-2517",
-      sku_kit: "CAN-2517",
-      subfamilia: "Subfamilia 4",
-      subfamilias: ["Subfamilia 4"],
-      cond: null,
-      evap: { id: "p-f-i", sku: "CAN-2517-I", nombre: "Evaporadora canaleta 2517", precio: 54000, costo: 31000, stock: 8, unidad: "UNIDAD", familia: "Clima", subfamilia: "Subfamilia 4", rol: "evaporadora" },
-    },
+  function foto(color, texto) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640"><rect width="640" height="640" fill="${color}"/><text x="320" y="330" text-anchor="middle" fill="white" font-size="42" font-family="sans-serif">${texto}</text></svg>`;
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }
+
+  function item(parcial) {
+    const base = {
+      unidad: "Medida 1", estado: "Activo", familia: "Con familia", imagen: "Con imagen",
+      tienda: "Sin marcar", precioFlag: "Sin marcar", venta: "Con precio", stockFlag: "Con stock",
+      seccion: "Con sección", cabys: "Con CABYS", compuesto: "Simple", pareja: "No aplica",
+      rate: 12500, stock: 4, clase: "C", estante: "", seccionValor: "Sección A",
+      problemas: [], corregido: false, slug: "", rol: "",
+    };
+    const it = Object.assign(base, parcial);
+    it.filtros = {
+      unidad: it.unidad, estado: it.estado, familia: it.familia, imagen: it.imagen,
+      tienda: it.tienda, precio: it.precioFlag, venta: it.venta, stock: it.stockFlag,
+      seccion: it.seccion, cabys: it.cabys, compuesto: it.compuesto, pareja: it.pareja,
+    };
+    if (!it.slug && it.imagen === "Con imagen") it.slug = it.sku.toLowerCase();
+    if (!it.foto && it.imagen === "Con imagen") it.foto = foto("#3a3f4b", it.sku);
+    return it;
+  }
+
+  const items = [
+    item({ id: "d1", sku: "M-01", nombre: "Artículo muestra 01", subfamilia: SUBS[0], tienda: "Sin marcar", imagen: "Sin imagen", stock: 6, stockFlag: "Con stock", problemas: ["Sin imagen"], foto: "" }),
+    item({ id: "d2", sku: "M-02", nombre: "Artículo muestra 02", subfamilia: SUBS[0], tienda: "Marcado", unidad: "Medida 2", rate: 3200, stock: 0, stockFlag: "Stock en 0", problemas: ["Stock en 0"] }),
+    item({ id: "d3", sku: "M-03", nombre: "Artículo muestra 03", subfamilia: SUBS[0], unidad: "No tienen unidad", seccion: "Sin sección", seccionValor: "", cabys: "Sin código", tienda: "Sin marcar", problemas: ["Sin código", "Sin sección"] }),
+    item({ id: "d4", sku: "M-04", nombre: "Artículo muestra 04", subfamilia: SUBS[1], tienda: "Marcado", precioFlag: "Con marcar", rate: 8900, stock: 12 }),
+    item({ id: "d5", sku: "M-05", nombre: "Artículo muestra 05", subfamilia: SUBS[1], estado: "Inactivo", tienda: "Sin marcar", imagen: "Sin imagen", venta: "Sin precio", rate: 0, problemas: ["Sin imagen", "Sin precio"], foto: "" }),
+    item({ id: "d6", sku: "M-06", nombre: "Artículo muestra 06", subfamilia: SUBS[1], familia: "No tienen familia", tienda: "Sin marcar", estante: "", stock: 2 }),
+    item({ id: "d7", sku: "M-07", nombre: "Artículo muestra 07", subfamilia: SUBS[2], unidad: "Medida 3", tienda: "Marcado", rate: 450, stock: 80 }),
+    item({ id: "d8", sku: "M-08", nombre: "Artículo muestra 08", subfamilia: SUBS[2], unidad: "Medida 3", tienda: "Sin marcar", imagen: "Con imagen", problemas: ["Foto no cuadrada (1024×559)"], foto: foto("#6b4a2a", "M-08") }),
+    item({ id: "d9", sku: "M-09", nombre: "Artículo muestra 09", subfamilia: SUBS[3], tienda: "Marcado", rate: 15600, stock: 3 }),
+    item({ id: "d10", sku: "M-10", nombre: "Artículo muestra 10", subfamilia: SUBS[3], tienda: "Marcado", stock: 0, stockFlag: "Stock en 0", problemas: ["Stock en 0"] }),
+    item({ id: "c1", sku: "P-A1", nombre: "Pieza muestra A1", subfamilia: SUBS[3], rol: "pieza A", pareja: "Listo para kit", rate: 1800, stock: 2, costo: 900 }),
+    item({ id: "e1", sku: "P-B1", nombre: "Pieza muestra B1", subfamilia: SUBS[3], rol: "pieza B", pareja: "Listo para kit", rate: 950, stock: 2, costo: 400 }),
+    item({ id: "c2", sku: "P-A2", nombre: "Pieza muestra A2", subfamilia: SUBS[3], rol: "pieza A", pareja: "Falta una pieza", rate: 2400, stock: 1, costo: 1100 }),
+    item({ id: "c3", sku: "P-A3", nombre: "Pieza muestra A3", subfamilia: SUBS[3], rol: "pieza A", pareja: "Ya tiene kit", rate: 3100, stock: 1, costo: 1500 }),
+    item({ id: "e3", sku: "P-B3", nombre: "Pieza muestra B3", subfamilia: SUBS[3], rol: "pieza B", pareja: "Ya tiene kit", rate: 1400, stock: 1, costo: 700 }),
+    item({ id: "k1", sku: "C-03", nombre: "Conjunto muestra 03", subfamilia: SUBS[3], compuesto: "Compuesto", pareja: "Ya tiene kit", rate: 4500, stock: 1, costo: 2200 }),
   ];
 
-  function kitsCreados() {
-    try { return JSON.parse(localStorage.getItem(LS_KITS) || "[]"); } catch { return []; }
-  }
-  function guardarKits(lista) {
-    localStorage.setItem(LS_KITS, JSON.stringify(lista));
-  }
+  const clientes = [
+    { id: "cli1", empresa: "Cuenta muestra 1", cuenta: "Cuenta muestra 1", oficial: "uno@correo.falso", cxc: "", correo: "aviso1@correo.falso", saldo: 820000 },
+    { id: "cli2", empresa: "Cuenta muestra 2", cuenta: "Cuenta muestra 2", oficial: "dos@correo.falso", cxc: "dos@correo.falso", correo: "dos@correo.falso", saldo: 150000 },
+    { id: "cli3", empresa: "Cuenta muestra 3", cuenta: "Cuenta muestra 3", oficial: "tres@correo.falso", cxc: "", correo: "", saldo: 0 },
+    { id: "cli4", empresa: "Cuenta muestra 4", cuenta: "Cuenta muestra 4", oficial: "cuatro@correo.falso", cxc: "", correo: "aviso4@correo.falso", saldo: -12000 },
+    { id: "cli5", empresa: "Cuenta muestra 5", cuenta: "", oficial: "", cxc: "", correo: "nadie@correo.falso", saldo: 0 },
+    { id: "cli6", empresa: "Cuenta muestra 6", cuenta: "Cuenta muestra 6", oficial: "seis@correo.falso", cxc: "", correo: "aviso6@correo.falso", saldo: 2400000 },
+  ];
 
-  function parejasActuales() {
-    const creados = new Set(kitsCreados().map((k) => k.base));
-    return PAREJAS_BASE.map((p) => {
-      const copia = { ...p, cond: p.cond ? { ...p.cond } : null, evap: p.evap ? { ...p.evap } : null };
-      if (creados.has(p.base) && p.estado === "listo") copia.estado = "ya_tiene_kit";
-      return copia;
-    });
-  }
+  let sesion = null;
+  try { sesion = JSON.parse(sessionStorage.getItem("demo-zoho-sesion") || "null"); } catch { sesion = null; }
+  let indiceFecha = Date.now() - 3600_000;
+  let construyendo = false;
+  let hechoIndice = 0;
+  let totalIndice = 0;
+  let cuota = 4800;
+  const historial = [{
+    id: "h1", fecha: new Date(Date.now() - 86400000).toISOString(), origen: "web", usuario: "Invitado",
+    accion: "Aplicar en la tienda", detalle: "Ejemplo ya guardado en la demo", estado: "listo",
+    cambiados: 1, errores: 0, revertido: "",
+    articulos: [{ id: "d4", sku: "M-04", nombre: "Artículo muestra 04", cambios: { "Aplica tienda en línea": ["Sin marcar", "Marcado"] } }],
+  }];
+  let seq = 2;
+  const trabajo = vacioTrabajo();
+  const cxcJob = { activo: false, texto: "", datos: null, error: null, tipo: "", archivo: "", usuario: "", accion: "", hechos: 0, total: 0, inicio: 0, faltan_segundos: null, faltan_texto: null };
+  const vigilante = { activo: false, subfamilia: "", minutos: 30, fotos: false, sin_stock: false, con_stock: false, lineas: ["Demo lista. Nada se escribió en Zoho."], filas: [] };
+  let bucle = { activo: false, cada: "no", dia: 0, hora: "08:00", origen: "zoho", proxima: "", ultima: "", error: "", usuario: "Invitado", periodo: "anio", desde: "", hasta: "", periodo_texto: "", solo_pendiente: true, monto_sel: "todos", monto_valor: "" };
+  let plantilla = {
+    asunto: "Estado de cuenta",
+    cuerpo: "Hola:\n\nEste es un mensaje de muestra. El PDF y el listado van en el mismo correo, juntos.\n\nSaludos.\n\nEquipo de muestra",
+  };
+  let cola = [];
 
-  function todasPiezas() {
-    const extra = [];
-    parejasActuales().forEach((p) => {
-      if (p.cond) extra.push(p.cond);
-      if (p.evap) extra.push(p.evap);
-    });
-    kitsCreados().forEach((k) => extra.push({
-      id: k.id, sku: k.sku, nombre: k.nombre, precio: k.precio, costo: k.costo,
-      stock: k.stock, unidad: k.unidad, familia: k.familia, subfamilia: k.subfamilia, rol: "kit",
-    }));
-    return extra;
-  }
-
-  function armarKitDesdePiezas(piezas) {
-    const errores = [];
-    const avisos = [];
-    if (piezas.length < 2) errores.push("Hacen falta mínimo dos artículos.");
-    const cond = piezas.find((p) => p.rol === "condensadora");
-    const evap = piezas.find((p) => p.rol === "evaporadora");
-    if (piezas.length >= 2 && (!cond || !evap)) {
-      avisos.push("No se ve una pareja condensadora + evaporadora. Revisá los SKU.");
-    }
-    const bases = [...new Set(piezas.map((p) => (p.sku || "").replace(/-E$|-I$|\/SZGO$|\/SZGI$/, "")))];
-    if (bases.length > 1) avisos.push("Las piezas no son del mismo modelo.");
-    const skuNuevo = (cond && evap)
-      ? (cond.sku.replace(/-E$|\/SZGO$/, "") || bases[0] || "KIT-DEMO")
-      : (bases[0] || "KIT-NUEVO");
-    if (kitsCreados().some((k) => k.sku === skuNuevo) || PAREJAS_BASE.some((p) => p.estado === "ya_tiene_kit" && p.sku_kit === skuNuevo)) {
-      errores.push("Ese SKU de kit ya existe.");
-    }
-    const precio = piezas.reduce((t, x) => t + Number(x.precio || 0) * Number(x.cantidad || 1), 0);
-    const costo = piezas.reduce((t, x) => t + Number(x.costo || 0) * Number(x.cantidad || 1), 0);
-    const stock = Math.min(...piezas.map((p) => Number(p.stock) || 0));
-    const ok = errores.length === 0 && piezas.length >= 2;
+  function vacioTrabajo() {
     return {
-      ok,
-      errores,
-      avisos,
-      encontradas: piezas.length,
-      fecha: new Date().toISOString().slice(0, 19),
-      piezas: piezas.map((p) => ({ ...p, cantidad: p.cantidad || 1 })),
-      kit: {
-        nombre: [cond?.nombre, evap?.nombre].filter(Boolean).join(" + ") || "Kit demo",
-        sku: skuNuevo,
-        unidad: piezas[0]?.unidad || "UNIDAD",
-        familia: piezas[0]?.familia || "Clima",
-        subfamilia: piezas[0]?.subfamilia || "Subfamilia 2",
-        precio: Math.round(precio * 100) / 100,
-        costo: Math.round(costo * 100) / 100,
-        descripcion: `Kit ${skuNuevo} (demo)`,
-        stock,
-      },
-      costo_api: { llamadas: piezas.length + 1 },
-      restan: 9876543,
-      limite: 10000000,
-      mensaje: ok ? "" : (errores[0] || avisos[0] || "Revisá las piezas."),
+      texto: "", activo: false, detenido: false, entrada: null, usuario: "", accion: "", detalle: "",
+      tipo: "", hechos: 0, total: 0, faltan_segundos: null, faltan_texto: null, cambiados: 0, errores: 0,
+      aviso_toast: null, reanudar: false, inicioMs: 0, pasos: [],
     };
   }
 
-  let catalogo = null;
-  let listo = null;
-  let sesion = null;
-  try {
-    sesion = JSON.parse(sessionStorage.getItem(LS_SES) || "null");
-  } catch {
-    sesion = null;
+  function faltaTexto(segundos) {
+    if (segundos == null) return null;
+    if (segundos < 60) return `faltan unos ${Math.max(1, Math.round(segundos))} s`;
+    return `faltan unos ${Math.max(1, Math.round(segundos / 60))} min`;
   }
 
-  const trabajo = {
-    texto: "",
-    activo: false,
-    detenido: false,
-    entrada: null,
-    usuario: "",
-    accion: "",
-    inicio: null,
-    hechos: 0,
-    total: 0,
-    faltan_segundos: null,
-    faltan_texto: null,
-    cambiados: 0,
-    errores: 0,
-    detalle: "",
-    aviso_toast: null,
-    reanudar: false,
-  };
+  function json(status, data) {
+    return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+  }
 
-  let vigEstado = {
-    activo: false,
-    subfamilia: "",
-    minutos: 30,
-    fotos: false,
-    sin_stock: false,
-    con_stock: false,
-  };
-  try {
-    vigEstado = { ...vigEstado, ...JSON.parse(localStorage.getItem(LS_VIG) || "{}") };
-  } catch { /* ignore */ }
+  function exigir() {
+    if (!sesion) return json(401, { ok: false });
+    return null;
+  }
 
-  let bitacora = [
-    "demo: modo invitado activo — datos ficticios.",
-    "demo: no hay conexión a un servidor real.",
-  ];
-  let vigTimer = null;
-  let indiceConstruyendo = false;
-  let indiceHecho = 0;
-  let indiceTotal = 5;
-
-  function json(data, status = 200) {
-    return new Response(JSON.stringify(data), {
-      status,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  function indiceBody() {
+    const subs = {};
+    items.forEach((it) => {
+      const vals = CLAVES.map((c) => it.filtros[c]);
+      const key = vals.join("\u0001");
+      const bolsa = subs[it.subfamilia] || (subs[it.subfamilia] = {});
+      bolsa[key] = (bolsa[key] || 0) + 1;
     });
-  }
-
-  function blobRespuesta(nombre, texto) {
-    const blob = new Blob([texto], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    return new Response(blob, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${nombre}"`,
-        "Cache-Control": "no-store",
-      },
-    });
-  }
-
-  async function cargar() {
-    if (listo) return listo;
-    listo = (async () => {
-      const res = await originalFetch("data/catalogo_demo.json");
-      catalogo = await res.json();
-      if (!localStorage.getItem(LS_HIST)) {
-        localStorage.setItem(LS_HIST, JSON.stringify(catalogo.historial_seed || []));
-      }
-      return catalogo;
-    })();
-    return listo;
-  }
-
-  function construirIndice() {
     const subfamilias = {};
-    for (const item of catalogo.items) {
-      const sub = item.subfamilia;
-      if (!subfamilias[sub]) subfamilias[sub] = {};
-      const key = JSON.stringify(item.valores);
-      subfamilias[sub][key] = (subfamilias[sub][key] || 0) + 1;
-    }
-    const out = {};
-    for (const [sub, mapa] of Object.entries(subfamilias)) {
-      out[sub] = Object.entries(mapa).map(([k, n]) => [JSON.parse(k), n]);
-    }
-    return out;
-  }
-
-  function historialLeer() {
-    try {
-      return JSON.parse(localStorage.getItem(LS_HIST) || "[]");
-    } catch {
-      return [];
-    }
-  }
-
-  function historialGuardar(lista) {
-    localStorage.setItem(LS_HIST, JSON.stringify(lista));
-  }
-
-  function corregidos() {
-    try {
-      return JSON.parse(localStorage.getItem(LS_CORR) || "{}");
-    } catch {
-      return {};
-    }
-  }
-
-  function requiereSesion() {
-    if (sesion) return null;
-    return json({ ok: false }, 401);
-  }
-
-  function pasaFiltros(item, filtros) {
-    if (!filtros || !Object.keys(filtros).length) return true;
-    return Object.entries(filtros).every(([clave, elegidos]) => {
-      const idx = catalogo.claves.indexOf(clave);
-      if (idx < 0) return true;
-      const lista = Array.isArray(elegidos) ? elegidos : [...elegidos];
-      if (!lista.length) return true;
-      return lista.includes(item.valores[idx]);
+    Object.entries(subs).forEach(([sub, mapa]) => {
+      subfamilias[sub] = Object.entries(mapa).map(([k, n]) => [k.split("\u0001"), n]);
     });
+    return {
+      claves: CLAVES, fecha: construyendo ? indiceFecha : indiceFecha, subfamilias,
+      construyendo, error: "", hecho: hechoIndice, total: totalIndice, paginas: 4,
+      consumo: construyendo ? null : 4, restan: cuota, limite: 5000, costo_estimado: 4,
+    };
   }
 
-  function itemsDePedido(body) {
-    let subs = body.subfamilia;
-    if (subs === "TODAS") subs = catalogo.subfamilias;
-    if (!Array.isArray(subs)) subs = subs ? [subs] : [];
-    const set = new Set(subs);
-    return catalogo.items.filter(
-      (it) => set.has(it.subfamilia) && pasaFiltros(it, body.filtros || {}),
-    );
+  function catalogo() {
+    return {
+      usuario: sesion.nombre, remoto: false, en_servidor: false,
+      subfamilias: SUBS, familias: ["FAMILIA DEMO"], tiempos: [30, 60],
+      unidades: ["Medida 1", "Medida 2", "Medida 3"], filtros: FILTROS, aviso: {},
+    };
   }
 
-  function hayCambioReal(body) {
-    return Boolean(
-      body.aplica || body.precio || body.porcentaje || body.estimado
-      || (body.unidad && body.unidad !== "No cambiar")
-      || (body.seccion && body.seccion !== "No cambiar")
-      || (body.estante && body.estante !== "No cambiar"),
-    );
+  function elegidos(body) {
+    let lista = items.slice();
+    const pedidas = body.subfamilia === "TODAS" ? SUBS : [].concat(body.subfamilia || []);
+    if (pedidas.length) lista = lista.filter((it) => pedidas.includes(it.subfamilia));
+    const filtros = body.filtros || {};
+    Object.entries(filtros).forEach(([clave, vals]) => {
+      if (vals && vals.length) lista = lista.filter((it) => vals.includes(it.filtros[clave]));
+    });
+    return lista;
   }
 
-  function valorItem(item, clave) {
-    const idx = catalogo.claves.indexOf(clave);
-    return idx >= 0 ? item.valores[idx] : "";
-  }
-
-  /** Solo campos que el usuario pidió y que realmente cambian (como el original). */
-  function cambiosDePedido(item, body) {
+  function planCambio(it, body) {
     const cambios = {};
-    if (body.aplica === "marcar" || body.aplica === "quitar") {
-      const antes = valorItem(item, "tienda") === "Marcado" ? "Sí" : "No";
-      const despues = body.aplica === "marcar" ? "Sí" : "No";
-      if (antes !== despues) cambios["Aplica tienda"] = [antes, despues];
-    }
-    if (body.precio === "marcar" || body.precio === "quitar") {
-      const antes = valorItem(item, "precio") === "Marcado" ? "Sí" : "No";
-      const despues = body.precio === "marcar" ? "Sí" : "No";
-      if (antes !== despues) cambios["Actualizar precio"] = [antes, despues];
-    }
-    if (body.porcentaje !== undefined && body.porcentaje !== null && String(body.porcentaje).trim() !== "") {
-      const nuevo = String(body.porcentaje).trim();
-      const antes = "40";
-      if (antes !== nuevo) cambios["% Utilidad"] = [antes, nuevo];
-    }
-    if (body.estimado !== undefined && body.estimado !== null && String(body.estimado).trim() !== "") {
-      const nuevo = String(body.estimado).trim();
-      const antes = "35";
-      if (antes !== nuevo) cambios["% Estimado"] = [antes, nuevo];
-    }
-    if (body.unidad && body.unidad !== "No cambiar") {
-      const antes = valorItem(item, "unidad") || "";
-      if (antes !== body.unidad) cambios.Unidad = [antes || "vacío", body.unidad];
-    }
-    if (body.seccion && body.seccion !== "No cambiar") {
-      const tiene = valorItem(item, "seccion") === "Con sección";
-      const antes = tiene ? "Sección A" : "";
-      if (antes !== body.seccion) cambios.Sección = [antes || "vacío", body.seccion];
-    }
-    if (body.estante && body.estante !== "No cambiar") {
-      const antes = "";
-      if (antes !== body.estante) cambios.Estante = [antes || "vacío", body.estante];
-    }
+    if (body.aplica === "marcar" && it.filtros.tienda !== "Marcado") cambios["Aplica tienda en línea"] = [it.filtros.tienda, "Marcado"];
+    if (body.aplica === "quitar" && it.filtros.tienda !== "Sin marcar") cambios["Aplica tienda en línea"] = [it.filtros.tienda, "Sin marcar"];
+    if (body.precio === "marcar" && it.filtros.precio !== "Con marcar") cambios["Actualizar precio"] = [it.filtros.precio, "Con marcar"];
+    if (body.precio === "quitar" && it.filtros.precio !== "Sin marcar") cambios["Actualizar precio"] = [it.filtros.precio, "Sin marcar"];
+    if (body.porcentaje) cambios["Porcentaje de utilidad"] = ["—", `${body.porcentaje}%`];
+    if (body.estimado) cambios["% Estimado de utilidad"] = ["—", `${body.estimado}%`];
+    if (body.unidad && body.unidad !== it.unidad) cambios.Unidad = [it.unidad, body.unidad];
+    if (body.seccion === "Sección A" && it.seccionValor !== "Sección A") cambios["Sección"] = [it.seccionValor || "vacío", "Sección A"];
+    if (body.estante === "Estante 9" && !it.estante) cambios.Estante = ["vacío", "Estante 9"];
     return cambios;
   }
 
-  function vistaPrevia(body) {
-    const items = itemsDePedido(body);
-    const soloLista = !hayCambioReal(body);
-    if (soloLista) {
-      return {
-        fecha: new Date().toISOString().slice(0, 19),
-        cambian: items.map((it) => ({
-          id: it.id,
-          sku: it.sku,
-          nombre: it.nombre,
-          subfamilia: it.subfamilia,
-          valores: it.valores,
-        })),
-        iguales: 0,
-        columnas: catalogo.filtros.map((f) => f.titulo),
-        costo: null,
-      };
-    }
+  function aplicarCambio(it, cambios) {
+    Object.entries(cambios).forEach(([campo, [, despues]]) => {
+      if (campo === "Aplica tienda en línea") it.filtros.tienda = it.tienda = despues;
+      if (campo === "Actualizar precio") it.filtros.precio = it.precioFlag = despues;
+      if (campo === "Unidad") {
+        it.unidad = despues;
+        it.filtros.unidad = despues;
+      }
+      if (campo === "Sección") {
+        it.seccionValor = despues;
+        it.seccion = "Con sección";
+        it.filtros.seccion = "Con sección";
+      }
+      if (campo === "Estante") it.estante = despues;
+    });
+  }
+
+  function costo(n) {
+    return { modo: "rapido", llamadas: n * 2, paginas: 0, restan: cuota, limite: 5000 };
+  }
+
+  function vista(body) {
+    const lista = elegidos(body);
     const cambian = [];
     let iguales = 0;
-    for (const it of items) {
-      const cambios = cambiosDePedido(it, body);
-      if (!Object.keys(cambios).length) {
-        iguales += 1;
-        continue;
-      }
-      cambian.push({
-        id: it.id,
-        sku: it.sku,
-        nombre: it.nombre,
-        subfamilia: it.subfamilia,
-        cambios,
-      });
+    lista.forEach((it) => {
+      const cambios = planCambio(it, body);
+      if (Object.keys(cambios).length) cambian.push({ sku: it.sku, nombre: it.nombre, subfamilia: it.subfamilia, id: it.id, cambios });
+      else iguales += 1;
+    });
+    const hayCambio = ["aplica", "precio", "porcentaje", "estimado", "unidad", "estante"].some((k) => body[k]) || body.seccion === "Sección A";
+    if (!hayCambio) {
+      return {
+        columnas: ["Unidad", "Tienda", "Stock", "Precio"],
+        cambian: lista.map((it) => ({ sku: it.sku, nombre: it.nombre, subfamilia: it.subfamilia, valores: [it.unidad, it.filtros.tienda, String(it.stock), String(it.rate)] })),
+        fecha: indiceFecha,
+      };
     }
+    return { cambian, iguales, costo: costo(cambian.length), fecha: indiceFecha };
+  }
+
+  function arrancar(accion, detalle, pasos, tipo) {
+    if (trabajo.activo || cxcJob.activo) return false;
+    Object.assign(trabajo, vacioTrabajo(), {
+      activo: true, usuario: sesion.nombre, accion, detalle, tipo: tipo || "",
+      total: pasos.length, hechos: 0, texto: pasos[0] ? pasos[0].texto : "Preparando…",
+      inicioMs: Date.now(), pasos,
+    });
+    return true;
+  }
+
+  function tick() {
+    if (construyendo) {
+      hechoIndice = Math.min(totalIndice, hechoIndice + 1);
+      if (hechoIndice >= totalIndice) {
+        construyendo = false;
+        indiceFecha = Date.now();
+        cuota = Math.max(0, cuota - 4);
+      }
+    }
+    if (trabajo.activo && trabajo.pasos.length) {
+      const paso = Math.min(trabajo.pasos.length, Math.floor((Date.now() - trabajo.inicioMs) / 450) + 1);
+      for (let i = trabajo.hechos; i < paso; i += 1) {
+        const p = trabajo.pasos[i];
+        if (p && p.hacer) p.hacer();
+        trabajo.cambiados += p && p.cuenta ? 1 : 0;
+      }
+      trabajo.hechos = paso;
+      const actual = trabajo.pasos[Math.min(paso, trabajo.pasos.length) - 1];
+      trabajo.texto = actual ? actual.texto : trabajo.texto;
+      const faltan = trabajo.total > paso ? ((Date.now() - trabajo.inicioMs) / paso) * (trabajo.total - paso) / 1000 : null;
+      trabajo.faltan_segundos = faltan;
+      trabajo.faltan_texto = faltaTexto(faltan);
+      if (paso >= trabajo.pasos.length) {
+        const entrada = trabajo._entrada;
+        trabajo.activo = false;
+        trabajo.texto = trabajo._fin || `Listo. Cambiados ${trabajo.cambiados}.`;
+        trabajo.faltan_segundos = null;
+        trabajo.faltan_texto = null;
+        trabajo.entrada = entrada ? entrada.id : trabajo.entrada;
+        if (trabajo._toast) trabajo.aviso_toast = trabajo._toast;
+        trabajo.pasos = [];
+      }
+    }
+    if (cxcJob.activo && cxcJob.total) {
+      const paso = Math.min(cxcJob.total, Math.floor((Date.now() - cxcJob.inicio) / 350));
+      cxcJob.hechos = paso;
+      cxcJob.texto = `Leyendo ${paso} de ${cxcJob.total}`;
+      const faltan = paso && paso < cxcJob.total ? ((Date.now() - cxcJob.inicio) / paso) * (cxcJob.total - paso) / 1000 : null;
+      cxcJob.faltan_segundos = faltan;
+      cxcJob.faltan_texto = faltaTexto(faltan);
+      if (paso >= cxcJob.total && cxcJob._datos) {
+        cxcJob.datos = cxcJob._datos;
+        cxcJob.activo = false;
+        cxcJob.texto = "Listo";
+        cxcJob.faltan_segundos = null;
+        cxcJob.faltan_texto = null;
+      }
+    }
+    if (vigilante.activo && vigilante.fotos) {
+      const pendiente = items.find((it) => it.sku === "M-01" && it.filtros.imagen === "Sin imagen");
+      if (pendiente && Date.now() - (vigilante.desde || 0) > 2500) {
+        pendiente.filtros.imagen = pendiente.imagen = "Con imagen";
+        pendiente.foto = foto("#2f6f4e", pendiente.sku);
+        pendiente.problemas = pendiente.problemas.filter((p) => p !== "Sin imagen");
+        const linea = `${new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" })}  ${pendiente.sku} ya tiene foto. En la demo se deja listo, sin escribir en Zoho.`;
+        vigilante.lineas.unshift(linea);
+        vigilante.filas.unshift([pendiente.sku, pendiente.nombre, "Foto nueva"]);
+        vigilante.fotos = false;
+      }
+    }
+  }
+  setInterval(tick, 400);
+
+  function empezarAplicar(body) {
+    const previa = vista(body);
+    const lista = previa.cambian || [];
+    if (!lista.length || previa.columnas) return json(400, { ok: false, mensaje: "No hay artículos para cambiar con esos filtros." });
+    const id = `h${seq++}`;
+    const tocados = [];
+    const pasos = lista.map((fila) => ({
+      texto: `Cambiando ${fila.sku}`,
+      cuenta: true,
+      hacer() {
+        const it = items.find((x) => x.id === fila.id);
+        if (it) aplicarCambio(it, fila.cambios);
+        tocados.push({ id: fila.id, sku: fila.sku, nombre: fila.nombre, cambios: fila.cambios });
+      },
+    }));
+    if (!arrancar("Cambio de catálogo", `${lista.length} artículos demo`, pasos)) {
+      return json(409, { ok: false, mensaje: "Ya hay un cambio en curso." });
+    }
+    trabajo._entrada = null;
+    trabajo._fin = `Listo. Cambiados ${lista.length}. Errores 0.`;
+    trabajo._toast = { id: `t-${id}`, titulo: "Cambios aplicados", texto: `${lista.length} artículos de la demo.` };
+    trabajo._alCerrar = () => {
+      const entrada = {
+        id, fecha: new Date().toISOString(), origen: "web", usuario: sesion.nombre,
+        accion: "Cambio de catálogo", detalle: `${lista.length} artículos demo`, estado: "listo",
+        cambiados: lista.length, errores: 0, articulos: tocados, revertido: "",
+      };
+      historial.unshift(entrada);
+      trabajo.entrada = id;
+      cuota = Math.max(0, cuota - lista.length * 2);
+    };
+    const original = trabajo.pasos;
+    const ultimo = original[original.length - 1];
+    const hacer = ultimo.hacer;
+    ultimo.hacer = () => { hacer(); trabajo._alCerrar(); };
+    return json(200, { ok: true });
+  }
+
+  function pendientes(tipo) {
+    const problemas = {};
+    items.forEach((it) => {
+      if (it.corregido) return;
+      it.problemas.forEach((p) => { problemas[p] = (problemas[p] || 0) + 1; });
+    });
+    const resumen = Object.entries(problemas);
+    const corregidos = items.filter((it) => it.corregido).length;
+    resumen.push(["Corregidos", corregidos]);
+    let articulos = items.filter((it) => (tipo === "Corregidos" ? it.corregido : it.problemas.length && !it.corregido));
+    if (tipo && tipo !== "Corregidos") articulos = articulos.filter((it) => it.problemas.includes(tipo));
     return {
-      fecha: new Date().toISOString().slice(0, 19),
-      cambian,
-      iguales,
-      costo: {
-        modo: "demo",
-        llamadas: cambian.length * 847 + 12840 + (cambian.length > 0 ? 3333 : 0),
-        paginas: 96,
-        formula: "n×847 + 12 840 + 3 333",
-        detalle: "Cálculo ilustrativo e irreal, solo para mostrar el estimador de APIs.",
-        restan: 9876543,
-        limite: 10000000,
+      fecha: indiceFecha,
+      total: items.length,
+      todos: items.filter((it) => it.problemas.length && !it.corregido).length,
+      resumen,
+      zoho: "#demo-",
+      tienda_buscar: "https://example.com/buscar",
+      tienda: { fecha: Date.now() - 7200_000, publicados: items.filter((it) => it.filtros.tienda === "Marcado").length, horas: ["6:00", "12:00", "18:00"] },
+      articulos: articulos.map((it) => ({
+        id: it.id, sku: it.sku, nombre: it.nombre, subfamilia: it.subfamilia, problemas: it.problemas.slice(),
+        foto: it.foto || "", tienda: it.filtros.tienda === "Marcado", slug: it.slug, corregido: it.corregido,
+      })),
+      construyendo: false,
+      revision: { activo: false },
+    };
+  }
+
+  function filaCxc(c, i) {
+    let estado = "cambiar";
+    if (!c.cuenta) estado = c.correo ? "sin_cuenta" : "sin_correo";
+    else if (!c.correo) estado = "sin_correo";
+    else if (c.cxc && c.correo.toLowerCase() === c.cxc.toLowerCase()) estado = "igual";
+    return {
+      fila: i + 2, empresa: c.empresa, identificacion: "", correo: c.correo, contact_id: c.cuenta ? c.id : "",
+      cuenta: c.cuenta, oficial: c.oficial, cxc_actual: c.cxc, cxc_campo_id: "demo", aviso: "",
+      estado, saldo: c.saldo,
+    };
+  }
+
+  function resumenCxc(filas, origen) {
+    return {
+      ok: true,
+      filas,
+      resumen: {
+        total: filas.length,
+        cambiar: filas.filter((f) => f.estado === "cambiar").length,
+        igual: filas.filter((f) => f.estado === "igual").length,
+        listo: filas.filter((f) => f.estado === "listo").length,
+        sin_cuenta: filas.filter((f) => f.estado === "sin_cuenta").length,
+        sin_correo: filas.filter((f) => f.estado === "sin_correo").length,
+        origen, periodo: "anio", periodo_texto: "este año",
+        desde: `${new Date().getFullYear()}-01-01`, hasta: new Date().toISOString().slice(0, 10), avisos: [],
       },
     };
   }
 
-  function simularAplicar(body) {
-    const candidatos = itemsDePedido(body);
-    const items = candidatos.filter((it) => Object.keys(cambiosDePedido(it, body)).length);
-    const total = Math.max(items.length, 1);
-    const id = `demo${Date.now().toString(36).slice(-8)}`;
-    const accion = [
-      body.porcentaje !== undefined && String(body.porcentaje).trim() !== "" ? `% utilidad ${body.porcentaje}` : "",
-      body.estimado !== undefined && String(body.estimado).trim() !== "" ? `% estimado ${body.estimado}` : "",
-      body.aplica === "marcar" ? "Aplica tienda: marcar" : body.aplica === "quitar" ? "Aplica tienda: quitar" : "",
-      body.precio === "marcar" ? "Actualizar precio: marcar" : body.precio === "quitar" ? "Actualizar precio: quitar" : "",
-      body.unidad && body.unidad !== "No cambiar" ? `Unidad → ${body.unidad}` : "",
-      body.seccion && body.seccion !== "No cambiar" ? body.seccion : "",
-      body.estante && body.estante !== "No cambiar" ? body.estante : "",
-    ].filter(Boolean).join(" · ") || "Cambio demo";
-
-    Object.assign(trabajo, {
-      activo: true,
-      texto: "Preparando…",
-      detenido: false,
-      entrada: null,
-      usuario: sesion?.nombre || "Invitado",
-      accion,
-      inicio: Date.now() / 1000,
-      hechos: 0,
-      total,
-      faltan_segundos: total * 0.4,
-      faltan_texto: "unos segundos",
-      cambiados: 0,
-      errores: 0,
-      detalle: `${items.length} artículos (simulado)`,
-      aviso_toast: null,
-      reanudar: false,
+  function clientesZoho() {
+    return clientes.filter((c) => c.cuenta).map((c, i) => {
+      const fila = filaCxc({ ...c, correo: c.cxc || c.oficial }, i);
+      fila.estado = fila.correo ? "listo" : "sin_correo";
+      fila.origen = "zoho";
+      return fila;
     });
+  }
 
-    let hecho = 0;
-    const tick = () => {
-      if (!trabajo.activo) return;
-      hecho += 1;
-      trabajo.hechos = Math.min(hecho, total);
-      trabajo.cambiados = trabajo.hechos;
-      trabajo.texto = `Aplicando… ${trabajo.hechos} de ${total}`;
-      trabajo.faltan_segundos = Math.max(0, (total - hecho) * 0.35);
-      if (hecho >= total) {
-        const entrada = {
-          id,
-          fecha: new Date().toISOString().slice(0, 19),
-          origen: "web",
-          cuenta: { nombre: "Usuario demo", correo: "demo@ejemplo.com" },
-          accion,
-          detalle: trabajo.detalle,
-          cambiados: total,
-          errores: 0,
-          total_articulos: Math.min(items.length, 8),
-          articulos: items.slice(0, 8).map((it) => ({
-            id: it.id,
-            sku: it.sku,
-            nombre: it.nombre,
-            cambios: cambiosDePedido(it, body),
-          })).filter((a) => Object.keys(a.cambios).length),
-        };
-        const hist = historialLeer();
-        hist.unshift(entrada);
-        historialGuardar(hist);
-        Object.assign(trabajo, {
-          activo: false,
-          texto: `Listo: ${total} artículos (simulado).`,
-          entrada: id,
-          cambiados: total,
-          hechos: total,
-          faltan_segundos: 0,
-          aviso_toast: {
-            id: `t-${id}`,
-            titulo: "Cambios aplicados (demo)",
-            texto: `${total} artículos simulados. No se escribió nada en una base real.`,
-          },
-        });
-        return;
-      }
-      setTimeout(tick, 280);
+  async function leerSubida(init) {
+    const body = init && init.body;
+    if (!(body instanceof FormData)) return { nombre: "archivo.xlsx", emails: [] };
+    const file = body.get("archivo");
+    if (!file) return { nombre: "archivo.xlsx", emails: [] };
+    const texto = await file.text();
+    const emails = texto.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
+    return { nombre: file.name || "archivo.xlsx", emails: [...new Set(emails.map((e) => e.toLowerCase()))] };
+  }
+
+  function empezarLectura(nombre, filas) {
+    if (cxcJob.activo || trabajo.activo) return json(409, { ok: false, mensaje: "Ya hay una carga en curso." });
+    Object.assign(cxcJob, {
+      activo: true, texto: `Leyendo ${nombre}`, datos: null, error: null, tipo: "cxc-lectura",
+      archivo: nombre, usuario: sesion.nombre, accion: `Leyendo ${nombre}`, hechos: 0, total: Math.max(filas.length, 1),
+      inicio: Date.now(), faltan_segundos: null, faltan_texto: null, _datos: resumenCxc(filas, "archivo"),
+    });
+    return json(200, { ok: true, trabajo: true });
+  }
+
+  function parejas() {
+    const pares = [
+      { base: "GRP-01", sku_kit: "C-01", subfamilia: SUBS[3], estado: "listo", cond: pieza("c1", "pieza A"), evap: pieza("e1", "pieza B") },
+      { base: "GRP-02", sku_kit: "C-02", subfamilia: SUBS[3], estado: "falta", cond: pieza("c2", "pieza A"), evap: null },
+      { base: "GRP-03", sku_kit: "C-03", subfamilia: SUBS[3], estado: "existe", cond: pieza("c3", "pieza A"), evap: pieza("e3", "pieza B") },
+    ];
+    return {
+      ok: true, fecha: indiceFecha, total: pares.length, subfamilias: SUBS, parejas: pares,
+      conteo: { listo: 1, falta: 1, existe: 1 },
     };
-    setTimeout(tick, 400);
   }
 
-  function guardarVig() {
-    localStorage.setItem(LS_VIG, JSON.stringify(vigEstado));
+  function pieza(id, rol) {
+    const it = items.find((x) => x.id === id);
+    if (!it) return null;
+    return { id: it.id, sku: it.sku, nombre: it.nombre, rol, cantidad: 1, precio: it.rate, costo: it.costo || Math.round(it.rate * 0.7), stock: it.stock };
   }
 
-  function arrancarVigLog() {
-    clearInterval(vigTimer);
-    if (!vigEstado.activo) return;
-    vigTimer = setInterval(() => {
-      if (!vigEstado.activo) return;
-      const ahora = new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      const partes = [];
-      if (vigEstado.fotos) partes.push("fotos: 1 artículo simulado");
-      if (vigEstado.sin_stock) partes.push("stock: 1 sin stock desmarcado (simulado)");
-      if (vigEstado.con_stock) partes.push("stock: 1 con stock marcado (simulado)");
-      if (!partes.length) partes.push("ciclo vacío (elegí qué revisar)");
-      bitacora.unshift(`${ahora} · ${vigEstado.subfamilia || "—"} · ${partes.join(" · ")}`);
-      bitacora = bitacora.slice(0, 40);
-    }, 8000);
+  function buscarPiezas(texto) {
+    const lineas = String(texto || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const piezas = [];
+    const vistos = new Set();
+    lineas.forEach((linea) => {
+      const q = linea.toLowerCase();
+      const it = items.find((x) => x.sku.toLowerCase() === q || x.nombre.toLowerCase().includes(q) || q.includes(x.sku.toLowerCase()));
+      if (it && !vistos.has(it.id)) {
+        vistos.add(it.id);
+        piezas.push(pieza(it.id, it.rol || "pieza"));
+      }
+    });
+    const ok = piezas.length >= 2;
+    return {
+      ok, piezas, encontradas: piezas.length, fecha: indiceFecha,
+      mensaje: ok ? "" : "Hacen falta mínimo dos artículos.",
+      errores: ok ? [] : ["Pegá al menos dos SKU, uno por línea."],
+      avisos: [],
+      kit: ok ? {
+        nombre: `Kit ${piezas.map((p) => p.sku).join(" + ")}`,
+        sku: `${piezas[0].sku}-KIT`,
+        unidad: "Medida 1", familia: "FAMILIA DEMO", subfamilia: SUBS[3],
+        precio: piezas.reduce((n, p) => n + Number(p.precio || 0), 0),
+        costo: piezas.reduce((n, p) => n + Number(p.costo || 0), 0),
+        descripcion: "Kit armado en la demo. No existe en Zoho.",
+      } : {},
+      costo_api: { llamadas: piezas.length + 1 }, restan: cuota, limite: 5000,
+    };
   }
 
-  async function handleApi(url, init) {
-    await cargar();
-    const method = (init?.method || "GET").toUpperCase();
+  function hoja(filas) {
+    const csv = filas.map((r) => r.map((c) => `"${String(c ?? "").replaceAll('"', '""')}"`).join(",")).join("\r\n");
+    return new Response(`\uFEFF${csv}`, { status: 200, headers: { "Content-Type": "text/csv; charset=utf-8" } });
+  }
+
+  function pdfDemo(nombre) {
+    const texto = `Estado de cuenta demo - ${nombre}`.replace(/[()\\]/g, " ");
+    const stream = `BT /F1 18 Tf 48 120 Td (${texto}) Tj ET`;
+    const body = `%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 420 240]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+4 0 obj<</Length ${stream.length}>>stream
+${stream}
+endstream
+endobj
+5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
+trailer<</Size 6/Root 1 0 R>>
+%%EOF`;
+    return new Response(body, { status: 200, headers: { "Content-Type": "application/pdf" } });
+  }
+
+  function proximaBucle(plan) {
+    const ahora = new Date();
+    if (plan.cada === "hora") return new Date(ahora.getTime() + 3600_000).toISOString();
+    if (plan.cada === "dia" || plan.cada === "semana" || plan.cada === "mes") {
+      const [hh, mm] = String(plan.hora || "08:00").split(":");
+      const nxt = new Date(ahora);
+      nxt.setHours(Number(hh) || 8, Number(mm) || 0, 0, 0);
+      if (nxt <= ahora) nxt.setDate(nxt.getDate() + (plan.cada === "semana" ? 7 : plan.cada === "mes" ? 30 : 1));
+      return nxt.toISOString();
+    }
+    return "";
+  }
+
+  function etiquetaBucle(plan) {
+    if (!plan.activo || plan.cada === "no") return "No se repite";
+    if (plan.cada === "hora") return "Cada hora";
+    if (plan.cada === "dia") return `Cada día a las ${plan.hora}`;
+    if (plan.cada === "semana") return `Cada ${["lunes","martes","miércoles","jueves","viernes","sábado","domingo"][Number(plan.dia) || 0]} a las ${plan.hora}`;
+    return `El día ${plan.dia || 1} de cada mes a las ${plan.hora}`;
+  }
+
+  function etiquetaFiltrosBucle(plan) {
+    const partes = [];
+    if (plan.periodo_texto) partes.push(plan.periodo_texto);
+    if (plan.monto_sel === "cero") partes.push("saldo 0");
+    else if (plan.monto_sel === "negativo") partes.push("saldo negativo");
+    else if (plan.monto_sel === "menos" && plan.monto_valor) partes.push(`menos de ${plan.monto_valor}`);
+    else if (plan.monto_sel === "mas" && plan.monto_valor) partes.push(`más de ${plan.monto_valor}`);
+    return partes.join(" · ");
+  }
+
+  window.fetch = async (input, init = {}) => {
+    const crudo = typeof input === "string" ? input : input.url;
+    const url = new URL(crudo, location.origin);
+    if (!url.pathname.startsWith("/api/")) return originalFetch(input, init);
+    tick();
+    const ruta = url.pathname;
+    const metodo = (init.method || "GET").toUpperCase();
     let body = {};
-    if (init?.body && typeof init.body === "string") {
-      try {
-        body = JSON.parse(init.body);
-      } catch {
-        body = {};
+    if (init.body && typeof init.body === "string") {
+      try { body = JSON.parse(init.body); } catch { body = {}; }
+    }
+
+    if (ruta === "/api/entrar" && metodo === "POST") {
+      const usuario = String(body.usuario || "").trim().toLowerCase();
+      const contra = String(body.contrasena || "");
+      if (!((usuario === "invitado" && contra === "demo") || (usuario === "demo" && contra === "demo"))) {
+        return json(401, { ok: false, mensaje: "En la demo entrá con usuario invitado y contraseña demo." });
       }
+      sesion = { usuario, nombre: "Invitado" };
+      sessionStorage.setItem("demo-zoho-sesion", JSON.stringify(sesion));
+      return json(200, { ok: true });
     }
-
-    const path = url.pathname.replace(/\/$/, "") || url.pathname;
-    const ruta = path.startsWith("/api/") ? path : `/api/${path.split("/api/")[1] || ""}`;
-
-    if (ruta === "/api/entrar" && method === "POST") {
-      const nombre = body.invitado
-        ? "Invitado"
-        : (String(body.usuario || "").trim() || "Invitado");
-      sesion = { nombre, usuario: "invitado" };
-      sessionStorage.setItem(LS_SES, JSON.stringify(sesion));
-      return json({ ok: true });
-    }
-
-    if (ruta === "/api/salir" && method === "POST") {
+    if (ruta === "/api/salir") {
       sesion = null;
-      sessionStorage.removeItem(LS_SES);
-      return json({ ok: true });
+      sessionStorage.removeItem("demo-zoho-sesion");
+      return json(200, { ok: true });
     }
+    const no = exigir();
+    if (no) return no;
 
-    const bloqueo = requiereSesion();
-    if (bloqueo && ruta !== "/api/aviso") return bloqueo;
-
-    if (ruta === "/api/aviso" && method === "GET") {
-      return json({});
+    if (ruta === "/api/aviso") return json(200, {});
+    if (ruta === "/api/catalogo") return json(200, catalogo());
+    if (ruta === "/api/indice" && metodo === "GET") return json(200, indiceBody());
+    if (ruta === "/api/indice" && metodo === "POST") {
+      construyendo = true; hechoIndice = 0; totalIndice = 4;
+      return json(200, { ok: true });
     }
-
-    if (ruta === "/api/catalogo" && method === "GET") {
-      const extraFiltros = [
-        { clave: "compuesto", titulo: "Artículo compuesto", opciones: ["Pieza", "Kit"] },
-        { clave: "pareja", titulo: "Pareja para kit", opciones: ["Listo", "Ya tiene kit", "Falta una pieza"] },
-      ];
-      return json({
-        usuario: sesion.nombre,
-        remoto: true,
-        en_servidor: false,
-        subfamilias: catalogo.subfamilias,
-        familias: catalogo.subfamilias,
-        tiempos: [30, 60],
-        unidades: catalogo.unidades,
-        estantes: catalogo.estantes,
-        filtros: [...(catalogo.filtros || []), ...extraFiltros],
-        aviso: {},
+    if (ruta === "/api/cuota") return json(200, { ok: true, restan: cuota, limite: 5000 });
+    if (ruta === "/api/vista-previa") return json(200, vista(body));
+    if (ruta === "/api/vista-previa.xlsx") {
+      const previa = vista(body);
+      const filas = [["SKU", "Artículo", "Subfamilia"]];
+      (previa.cambian || []).forEach((a) => {
+        if (a.cambios) Object.entries(a.cambios).forEach(([campo, vals]) => filas.push([a.sku, a.nombre, a.subfamilia, campo, vals[0], vals[1]]));
+        else filas.push([a.sku, a.nombre, a.subfamilia, ...(a.valores || [])]);
       });
+      return hoja(filas);
     }
-
-    if (ruta === "/api/indice" && method === "GET") {
-      if (indiceConstruyendo) {
-        indiceHecho = Math.min(indiceTotal, indiceHecho + 1);
-        if (indiceHecho >= indiceTotal) {
-          indiceConstruyendo = false;
-        }
-      }
-      return json({
-        claves: catalogo.claves,
-        fecha: indiceConstruyendo ? null : new Date().toISOString().slice(0, 19),
-        subfamilias: indiceConstruyendo ? {} : construirIndice(),
-        construyendo: indiceConstruyendo,
-        error: "",
-        hecho: indiceHecho,
-        total: indiceTotal,
-        paginas: 1,
-        consumo: 1,
-        restan: 9876543,
-        limite: 10000000,
-        costo_estimado: 847291,
-      });
-    }
-
-    if (ruta === "/api/indice" && method === "POST") {
-      indiceConstruyendo = true;
-      indiceHecho = 0;
-      indiceTotal = 4;
-      return json({ ok: true });
-    }
-
-    if (ruta === "/api/cuota" && method === "GET") {
-      return json({ ok: true, restan: 9876543, limite: 10000000, usadas: 123457 });
-    }
-
-    if (ruta === "/api/historial" && method === "GET") {
-      return json({
-        entradas: historialLeer(),
-        cuenta: { nombre: "Usuario demo", correo: "demo@ejemplo.com" },
-      });
-    }
-
-    if (ruta === "/api/historial.xlsx") {
-      return blobRespuesta("historial-demo.txt", "Demo: archivo simulado. No hay Excel real.");
-    }
-
-    if (ruta === "/api/vista-previa" && method === "POST") {
-      return json(vistaPrevia(body));
-    }
-
-    if (ruta === "/api/vista-previa.xlsx" && method === "POST") {
-      return blobRespuesta("vista-previa-demo.txt", "Demo: vista previa simulada.");
-    }
-
-    if (ruta === "/api/aplicar" && method === "POST") {
-      if (trabajo.activo) return json({ ok: false, mensaje: "Ya hay un cambio en curso." }, 409);
-      if (!body.subfamilia || (Array.isArray(body.subfamilia) && !body.subfamilia.length)) {
-        return json({ ok: false, mensaje: "Elegí al menos una subfamilia." }, 400);
-      }
-      simularAplicar(body);
-      return json({ ok: true });
-    }
-
-    if (ruta === "/api/trabajo" && method === "GET") {
-      const datos = { ...trabajo };
-      if (datos.inicio) datos.inicio = datos.inicio;
-      return json(datos);
-    }
-
-    if (ruta === "/api/detener" && method === "POST") {
+    if (ruta === "/api/aplicar") return empezarAplicar(body);
+    if (ruta === "/api/detener") {
       if (trabajo.activo) {
         trabajo.activo = false;
         trabajo.detenido = true;
-        trabajo.texto = "Detenido (demo).";
         trabajo.reanudar = true;
-        trabajo.reanudar_accion = trabajo.accion;
-        trabajo.reanudar_cambiados = trabajo.cambiados;
+        trabajo.texto = `Detenido. Cambiados ${trabajo.cambiados}.`;
+        const id = `h${seq++}`;
+        historial.unshift({
+          id, fecha: new Date().toISOString(), origen: "web", usuario: sesion.nombre,
+          accion: trabajo.accion || "Cambio detenido", detalle: trabajo.texto, estado: "detenido",
+          cambiados: trabajo.cambiados, errores: 0, articulos: [], reanudable: true, revertido: "",
+        });
+        trabajo.entrada = id;
       }
-      return json({ ok: true });
+      return json(200, { ok: true });
     }
-
-    if (ruta === "/api/reanudar" && method === "POST") {
+    if (ruta === "/api/reanudar") {
+      trabajo.activo = false;
       trabajo.reanudar = false;
-      trabajo.detenido = false;
-      trabajo.activo = true;
-      trabajo.texto = "Reanudando… (demo)";
-      setTimeout(() => {
-        trabajo.activo = false;
-        trabajo.texto = "Listo tras reanudar (demo).";
-        trabajo.aviso_toast = {
-          id: `r-${Date.now()}`,
-          titulo: "Reanudación demo",
-          texto: "Simulación terminada. No se escribió en una base real.",
-        };
-      }, 1200);
-      return json({ ok: true });
+      trabajo.texto = "En la demo el cambio detenido queda anotado. No queda nada a medias en Zoho.";
+      return json(200, { ok: true });
     }
-
-    if (ruta === "/api/revertir-previa" && method === "POST") {
-      return json({ ok: true, accion: "Reversión demo", articulos: 3, llamadas: 6 });
-    }
-
-    if (ruta === "/api/revertir" && method === "POST") {
-      trabajo.activo = true;
-      trabajo.texto = "Preparando la reversión… (demo)";
-      setTimeout(() => {
-        trabajo.activo = false;
-        trabajo.texto = "Reversión simulada.";
-        const id = body.id;
-        if (id) {
-          const hist = historialLeer().map((e) => (
-            e.id === id ? { ...e, revertido: true } : e
-          ));
-          historialGuardar(hist);
-        }
-      }, 1000);
-      return json({ ok: true });
-    }
-
-    if (ruta === "/api/vigilante" && method === "GET") {
-      return json({
-        lineas: bitacora,
-        activos: vigEstado.activo
-          ? ["fotos", "sin_stock", "con_stock"].filter((k) => vigEstado[k] || (k === "sin_stock" && vigEstado.sin_stock))
-          : [],
-        excel_filas: vigEstado.activo ? 4 : 0,
-        ...vigEstado,
-      });
-    }
-
-    if (ruta === "/api/vigilante" && method === "POST") {
-      vigEstado = {
-        activo: Boolean(body.activo),
-        subfamilia: body.subfamilia || body.familia || "",
-        minutos: Number(body.minutos) || 30,
-        fotos: Boolean(body.fotos),
-        sin_stock: Boolean(body.sin_stock || body.stock),
-        con_stock: Boolean(body.con_stock),
-      };
-      guardarVig();
-      if (vigEstado.activo) {
-        bitacora.unshift(
-          `demo: vigilante activo · ${vigEstado.subfamilia} · cada ${vigEstado.minutos} min`,
-        );
-        arrancarVigLog();
-      } else {
-        bitacora.unshift("demo: vigilante detenido.");
-        clearInterval(vigTimer);
+    if (ruta === "/api/trabajo") {
+      if (!trabajo.activo && cxcJob.activo) {
+        return json(200, {
+          activo: true, tipo: cxcJob.tipo, texto: cxcJob.texto, accion: cxcJob.accion,
+          detalle: cxcJob.archivo, usuario: cxcJob.usuario, hechos: cxcJob.hechos, total: cxcJob.total,
+          faltan_segundos: cxcJob.faltan_segundos, faltan_texto: cxcJob.faltan_texto,
+        });
       }
-      return json({ ok: true });
+      const copia = { ...trabajo };
+      delete copia.pasos;
+      delete copia._entrada;
+      delete copia._fin;
+      delete copia._toast;
+      delete copia._alCerrar;
+      return json(200, copia);
     }
-
-    if (ruta === "/api/vigilante.xlsx") {
-      return blobRespuesta("vigilante-demo.txt", "Demo: log del vigilante simulado.");
+    if (ruta === "/api/historial") {
+      return json(200, { entradas: historial, cuenta: { nombre: "Cuenta demo", correo: "demo@ejemplo.com" } });
     }
-
-    if (ruta === "/api/pendientes" && method === "GET") {
-      const tipo = url.searchParams.get("tipo") || "";
-      const corr = corregidos();
-      let articulos = (catalogo.pendientes || []).map((a) => ({
-        ...a,
-        corregido: Boolean(corr[a.id]),
-        tienda: true,
-      }));
-      const resumenMap = {};
-      for (const a of articulos) {
-        if (corr[a.id]) continue;
-        for (const p of a.problemas) {
-          const t = /foto|fondo|imagen/i.test(p) ? "Foto"
-            : /stock/i.test(p) ? "Stock"
-              : /precio/i.test(p) ? "Precio"
-                : "Otro";
-          resumenMap[t] = (resumenMap[t] || 0) + 1;
-        }
-      }
-      const corregidosLista = articulos.filter((a) => a.corregido);
-      const activos = articulos.filter((a) => !a.corregido);
-      let lista = tipo === "Corregidos" ? corregidosLista : activos;
-      if (tipo && tipo !== "Corregidos") {
-        lista = lista.filter((a) => a.problemas.some((p) => {
-          if (tipo === "Foto") return /foto|fondo|imagen/i.test(p);
-          if (tipo === "Stock") return /stock/i.test(p);
-          if (tipo === "Precio") return /precio/i.test(p);
-          return true;
-        }));
-      }
-      const resumen = Object.entries(resumenMap).sort((a, b) => b[1] - a[1]);
-      if (corregidosLista.length) resumen.push(["Corregidos", corregidosLista.length]);
-      return json({
-        fecha: new Date().toISOString().slice(0, 19),
-        tienda: {
-          fecha: new Date().toISOString().slice(0, 19),
-          publicados: 48,
-          horas: ["8:00", "12:00", "16:00"],
-        },
-        construyendo: false,
-        revision: { activo: false },
-        resumen,
-        total: lista.length,
-        todos: activos.length,
-        corregidos: corregidosLista.length,
-        articulos: lista,
-        ficha: "#",
-        tienda_buscar: "#",
+    if (ruta === "/api/historial.xlsx") return hoja([["Código", "Campo", "Antes", "Después"], ["M-04", "Aplica tienda", "Sin marcar", "Marcado"]]);
+    if (ruta === "/api/revertir-previa") {
+      const entrada = historial.find((e) => e.id === body.id);
+      if (!entrada) return json(404, { ok: false, mensaje: "Ese cambio no está en la demo." });
+      return json(200, { ok: true, articulos: entrada.articulos.length || entrada.cambiados || 1, accion: entrada.accion, tipo: "articulos", llamadas: (entrada.articulos.length || 1) * 2 });
+    }
+    if (ruta === "/api/revertir") {
+      const entrada = historial.find((e) => e.id === body.id);
+      if (!entrada) return json(404, { ok: false, mensaje: "Ese cambio no está en la demo." });
+      (entrada.articulos || []).forEach((a) => {
+        const it = items.find((x) => x.id === a.id);
+        if (!it) return;
+        const invertido = {};
+        Object.entries(a.cambios || {}).forEach(([campo, [antes, despues]]) => { invertido[campo] = [despues, antes]; });
+        aplicarCambio(it, invertido);
       });
+      entrada.revertido = new Date().toISOString();
+      const pasos = [{ texto: "Revirtiendo el cambio de la demo", cuenta: true, hacer() {} }];
+      arrancar("Reversión", entrada.accion, pasos);
+      trabajo._fin = "Listo. El cambio de la demo volvió al valor anterior.";
+      trabajo._toast = { id: `rev-${entrada.id}`, titulo: "Cambio revertido", texto: entrada.accion };
+      return json(200, { ok: true });
     }
-
-    if (ruta === "/api/pendientes-corregido" && method === "POST") {
-      const mapa = corregidos();
-      if (body.quitar) delete mapa[body.id];
-      else mapa[body.id] = { fecha: new Date().toISOString() };
-      localStorage.setItem(LS_CORR, JSON.stringify(mapa));
-      return json({ ok: true });
+    if (ruta === "/api/pendientes") return json(200, pendientes(url.searchParams.get("tipo") || ""));
+    if (ruta === "/api/pendientes-corregido") {
+      const it = items.find((x) => x.id === body.id);
+      if (it) it.corregido = !body.quitar;
+      return json(200, { ok: true });
     }
-
-    if (ruta === "/api/compuestos/parejas" && method === "GET") {
-      const parejas = parejasActuales();
-      const conteo = { listo: 0, ya_tiene_kit: 0, incompleto: 0 };
-      parejas.forEach((p) => { conteo[p.estado] = (conteo[p.estado] || 0) + 1; });
-      const subs = [...new Set(parejas.map((p) => p.subfamilia).filter(Boolean))];
-      return json({
-        ok: true,
-        fecha: new Date().toISOString().slice(0, 19),
-        total: parejas.length,
-        conteo,
-        subfamilias: subs,
-        parejas,
-      });
-    }
-
-    if (ruta === "/api/compuestos/buscar" && method === "POST") {
-      const lineas = String(body.texto || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      const pool = todasPiezas();
-      const piezas = [];
-      const vistos = new Set();
-      lineas.forEach((linea) => {
-        const aguja = linea.replace(/^#/, "").toLowerCase();
-        const hit = pool.find((p) => (
-          (p.sku && p.sku.toLowerCase() === aguja)
-          || (p.nombre && p.nombre.toLowerCase() === aguja)
-          || (p.sku && aguja.includes(p.sku.toLowerCase()))
-          || (p.nombre && p.nombre.toLowerCase().includes(aguja))
-        ));
-        if (hit && !vistos.has(hit.id)) {
-          vistos.add(hit.id);
-          piezas.push({ ...hit, cantidad: 1 });
-        }
-      });
-      return json(armarKitDesdePiezas(piezas));
-    }
-
-    if (ruta === "/api/compuestos.xlsx" && method === "POST") {
-      const kit = body.kit || {};
-      const piezas = body.piezas || [];
-      const lineas = [
-        "SKU\tNombre\tCant\tPrecio\tCosto",
-        ...piezas.map((p) => `${p.sku}\t${p.nombre}\t${p.cantidad || 1}\t${p.precio}\t${p.costo}`),
-        `${kit.sku || "KIT"}\t${kit.nombre || ""}\t1\t${kit.precio || ""}\t${kit.costo || ""}`,
-      ];
-      return blobRespuesta(`kit-${kit.sku || "demo"}.txt`, lineas.join("\n"));
-    }
-
-    if (ruta === "/api/compuestos" && method === "POST") {
-      const kit = body.kit || {};
-      if (!kit.sku || !kit.nombre) {
-        return json({ ok: false, mensaje: "El kit necesita nombre y un SKU nuevo." }, 400);
-      }
-      const lista = kitsCreados();
-      if (lista.some((k) => k.sku === kit.sku)) {
-        return json({ ok: false, mensaje: "Ese SKU de kit ya existe." }, 400);
-      }
-      const par = parejasActuales().find((p) => p.sku_kit === kit.sku || p.base === kit.sku);
-      lista.push({
-        id: `kit-${Date.now().toString(36)}`,
-        base: par?.base || kit.sku,
-        sku: kit.sku,
-        nombre: kit.nombre,
-        precio: kit.precio,
-        costo: kit.costo,
-        stock: 1,
-        unidad: kit.unidad,
-        familia: kit.familia,
-        subfamilia: kit.subfamilia,
-      });
-      guardarKits(lista);
-      const hist = historialLeer();
-      hist.unshift({
-        id: `kit${Date.now().toString(36).slice(-6)}`,
-        fecha: new Date().toISOString().slice(0, 19),
-        origen: "web",
-        cuenta: { nombre: "Usuario demo", correo: "demo@ejemplo.com" },
-        accion: `Kit creado ${kit.sku}`,
-        detalle: kit.nombre,
-        cambiados: 1,
-        errores: 0,
-        total_articulos: 1,
-        articulos: [{ id: kit.sku, sku: kit.sku, nombre: kit.nombre, cambios: { Kit: ["", kit.sku] } }],
-      });
-      historialGuardar(hist);
-      return json({
-        ok: true,
-        item: { sku: kit.sku, nombre: kit.nombre },
-        consumo: (body.piezas || []).length + 1,
-        llamadas: (body.piezas || []).length + 1,
-        restan: 9876540,
-      });
-    }
-
-    if (ruta === "/api/tienda-producto" && method === "GET") {
-      return json({
+    if (ruta === "/api/tienda-producto") {
+      const it = items.find((x) => x.slug === url.searchParams.get("slug"));
+      if (!it) return json(404, { ok: false, mensaje: "Ese producto no está en la demo." });
+      return json(200, {
         ok: true,
         producto: {
-          nombre: "Artículo demo",
-          slug: url.searchParams.get("slug") || "",
-          disponible: 3,
-          imagen: null,
+          nombre: it.nombre, sku: it.sku, unidad: it.unidad, precio_iva: `₡${Number(it.rate).toLocaleString("es-CR")}`,
+          disponible: it.stock, foto: it.foto || "",
         },
       });
     }
-
-    return json({ ok: false, mensaje: `Demo: ruta no simulada ${ruta}` }, 404);
-  }
-
-  window.fetch = async function (input, init) {
-    const raw = typeof input === "string" ? input : input.url;
-    let url;
-    try {
-      url = new URL(raw, window.location.origin);
-    } catch {
-      return originalFetch(input, init);
+    if (ruta === "/api/vigilante" && metodo === "GET") {
+      return json(200, { ...vigilante, excel_filas: vigilante.filas.length, lineas: vigilante.lineas.slice(0, 40) });
     }
-    if (!url.pathname.includes("/api/")) {
-      return originalFetch(input, init);
+    if (ruta === "/api/vigilante" && metodo === "POST") {
+      Object.assign(vigilante, {
+        activo: Boolean(body.activo), subfamilia: body.subfamilia || "", minutos: body.minutos || 30,
+        fotos: Boolean(body.fotos), sin_stock: Boolean(body.sin_stock), con_stock: Boolean(body.con_stock),
+        desde: Date.now(),
+      });
+      if (vigilante.activo) vigilante.lineas.unshift(`${new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" })}  Vigilante demo activo (${vigilante.subfamilia || "TODAS"}).`);
+      return json(200, { ok: true });
     }
-    try {
-      return await handleApi(url, init || {});
-    } catch (err) {
-      console.error("mock demo", err);
-      return json({ ok: false, mensaje: String(err.message || err) }, 500);
+    if (ruta === "/api/vigilante.xlsx") return hoja([["Hora", "SKU", "Qué pasó"], ...vigilante.filas]);
+    if (ruta === "/api/compuestos/parejas") return json(200, parejas());
+    if (ruta === "/api/compuestos/buscar") return json(200, buscarPiezas(body.texto));
+    if (ruta === "/api/compuestos.xlsx") {
+      const kit = body.kit || {};
+      const filas = [["SKU", "Nombre", "Cantidad"], [kit.sku, kit.nombre, 1]];
+      (body.piezas || []).forEach((p) => filas.push([p.sku || p.id, "", p.cantidad || 1]));
+      return hoja(filas);
     }
+    if (ruta === "/api/compuestos" && metodo === "POST") {
+      const kit = body.kit || {};
+      if (items.some((it) => it.sku === kit.sku)) return json(400, { ok: false, mensaje: "Ese SKU ya existe en la demo." });
+      items.push(item({
+        id: `k${seq++}`, sku: kit.sku, nombre: kit.nombre, subfamilia: kit.subfamilia || SUBS[3],
+        compuesto: "Compuesto", pareja: "Ya tiene kit", rate: Number(kit.precio) || 0, stock: 1, costo: Number(kit.costo) || 0,
+      }));
+      cuota = Math.max(0, cuota - 3);
+      historial.unshift({
+        id: `h${seq++}`, fecha: new Date().toISOString(), origen: "web", usuario: sesion.nombre,
+        accion: "Crear kit", detalle: kit.sku, estado: "listo", cambiados: 1, errores: 0, revertido: "",
+        articulos: [{ id: kit.sku, sku: kit.sku, nombre: kit.nombre, cambios: { Kit: ["no existía", "creado en la demo"] } }],
+      });
+      return json(200, { ok: true, item: { sku: kit.sku, nombre: kit.nombre }, consumo: 3, restan: cuota });
+    }
+    if (ruta === "/api/cxc/bucle" && metodo === "GET") {
+      return json(200, { ok: true, ...bucle, texto: etiquetaBucle(bucle), filtros: etiquetaFiltrosBucle(bucle) });
+    }
+    if (ruta === "/api/cxc/bucle" && metodo === "POST") {
+      if (body.cada && body.cada !== "no" && !body.confirmar) {
+        return json(400, { ok: false, mensaje: "El bucle no arranca solo. Usá Confirmar inicio de bucle." });
+      }
+      bucle = {
+        ...bucle, ...body,
+        activo: Boolean(body.confirmar) && body.cada && body.cada !== "no",
+        usuario: sesion.nombre,
+        error: "",
+      };
+      bucle.proxima = bucle.activo ? proximaBucle(bucle) : "";
+      return json(200, { ok: true, ...bucle, texto: etiquetaBucle(bucle), filtros: etiquetaFiltrosBucle(bucle) });
+    }
+    if (ruta === "/api/cxc/plantilla" && metodo === "GET") {
+      return json(200, { ok: true, ...plantilla });
+    }
+    if (ruta === "/api/cxc/plantilla" && metodo === "POST") {
+      plantilla = {
+        asunto: String(body.asunto || "").trim() || plantilla.asunto,
+        cuerpo: String(body.cuerpo || "").trim() || plantilla.cuerpo,
+      };
+      return json(200, { ok: true, ...plantilla });
+    }
+    if (ruta === "/api/cxc/trabajo") {
+      return json(200, {
+        ok: true, activo: cxcJob.activo, texto: cxcJob.texto, error: cxcJob.error,
+        datos: cxcJob.activo ? null : cxcJob.datos, tipo: cxcJob.tipo, archivo: cxcJob.archivo,
+        usuario: cxcJob.usuario, accion: cxcJob.accion, hechos: cxcJob.hechos, total: cxcJob.total,
+        faltan_segundos: cxcJob.faltan_segundos, faltan_texto: cxcJob.faltan_texto,
+      });
+    }
+    if (ruta === "/api/cxc/previa") {
+      const subida = await leerSubida(init);
+      let filas;
+      if (subida.emails.length) {
+        filas = subida.emails.map((correo, i) => filaCxc({
+          id: `mail${i}`, empresa: correo.split("@")[1], cuenta: `Cuenta demo ${i + 1}`,
+          oficial: `oficial@${correo.split("@")[1]}`, cxc: "", correo, saldo: 100000 * (i + 1),
+        }, i));
+      } else {
+        filas = clientes.map(filaCxc);
+      }
+      bucle.origen = "excel";
+      return empezarLectura(subida.nombre, filas);
+    }
+    if (ruta === "/api/cxc/filtrar") {
+      if (cxcJob.activo || trabajo.activo) return json(409, { ok: false, mensaje: "Ya hay una carga en curso." });
+      const filas = clientesZoho();
+      Object.assign(cxcJob, {
+        activo: true, texto: "Cargando clientes de Zoho…", datos: null, error: null, tipo: "cxc-filtro",
+        archivo: "clientes de Zoho", usuario: sesion.nombre, accion: "Leyendo clientes de Zoho",
+        hechos: 0, total: filas.length, inicio: Date.now(), _datos: resumenCxc(filas, "zoho"),
+      });
+      bucle.origen = "zoho";
+      return json(200, { ok: true, trabajo: true });
+    }
+    if (ruta === "/api/cxc/pdf") return pdfDemo(url.searchParams.get("empresa") || "cliente demo");
+    if (ruta === "/api/cxc/listado") {
+      const id = url.searchParams.get("id");
+      const c = clientes.find((x) => x.id === id) || { cuenta: "Cuenta demo", saldo: 50000 };
+      const facturas = c.saldo > 0 ? [
+        { numero: "F-1001", fecha: `${new Date().getFullYear()}-02-12`, vence: `${new Date().getFullYear()}-03-12`, total: c.saldo, saldo: c.saldo, estado: "Pendiente" },
+      ] : [];
+      return json(200, { ok: true, cuenta: c.cuenta || c.empresa, facturas, periodo_texto: "este año", desde: `${new Date().getFullYear()}-01-01`, hasta: new Date().toISOString().slice(0, 10) });
+    }
+    if (ruta === "/api/cxc/aplicar") {
+      const filas = body.filas || [];
+      filas.forEach((f) => {
+        const c = clientes.find((x) => x.id === f.contact_id);
+        if (c) c.cxc = f.correo;
+      });
+      const pasos = filas.map((f) => ({ texto: `Escribiendo CXC ${f.cuenta || f.empresa}`, cuenta: true, hacer() {} }));
+      if (!arrancar("Poner correo CXC", `${filas.length} cuentas`, pasos, "cxc")) {
+        return json(409, { ok: false, mensaje: "Ya hay un cambio en curso." });
+      }
+      trabajo._fin = "Listo";
+      trabajo.cxc_resultado = { ok: true, cambiados: filas.length, errores: 0, mensaje: `${filas.length} correos CXC en la demo` };
+      trabajo._toast = { id: `cxc-${Date.now()}`, titulo: "Correos CXC actualizados", texto: `${filas.length} cuentas de la demo` };
+      historial.unshift({
+        id: `h${seq++}`, fecha: new Date().toISOString(), origen: "web", usuario: sesion.nombre,
+        accion: "Correo CXC", detalle: `${filas.length} cuentas`, estado: "listo", cambiados: filas.length, errores: 0, revertido: "",
+        articulos: filas.map((f) => ({ id: f.contact_id, sku: "", nombre: f.cuenta || f.empresa, cambios: { correo_cxc: [f.cxc_actual || "", f.correo] } })),
+      });
+      return json(200, { ok: true, trabajo: true });
+    }
+    if (ruta === "/api/cxc/enviar") {
+      const n = (body.contact_ids || []).length;
+      const pasos = Array.from({ length: Math.max(1, n) }, (_, i) => ({
+        texto: `Enviando ${i + 1} de ${n} (demo)`,
+        cuenta: true,
+        hacer() {},
+      }));
+      if (!arrancar("Enviar estados de cuenta", `${n} cuentas`, pasos, "cxc")) {
+        return json(409, { ok: false, mensaje: "Ya hay un cambio en curso." });
+      }
+      trabajo._fin = "Listo";
+      trabajo.cxc_resultado = { ok: true, enviados: n, errores: 0, mensaje: "En la demo no se envió ningún correo real." };
+      trabajo._toast = { id: `cxc-env-${Date.now()}`, titulo: "Estados de cuenta (demo)", texto: `${n} envíos ficticios. No salió ningún correo.` };
+      historial.unshift({
+        id: `h${seq++}`, fecha: new Date().toISOString(), origen: "web", usuario: sesion.nombre,
+        accion: "Estado de cuenta", detalle: `${n} enviados (demo)`, estado: "listo", cambiados: n, errores: 0, revertido: "",
+        articulos: [],
+      });
+      return json(200, { ok: true, trabajo: true });
+    }
+    return json(404, { ok: false, mensaje: "Esa ruta no está en la demo." });
   };
 
-  window.__DEMO_MASIVO__ = true;
-  cargar().catch((e) => console.error("No se pudo cargar catalogo_demo.json", e));
-  if (vigEstado.activo) arrancarVigLog();
+  function engancharInvitado() {
+    const boton = document.getElementById("entrar-invitado");
+    if (!boton || boton.dataset.listo) return;
+    boton.dataset.listo = "1";
+    boton.addEventListener("click", () => {
+      document.getElementById("usuario").value = "invitado";
+      document.getElementById("contra").value = "demo";
+      document.getElementById("forma").requestSubmit();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", engancharInvitado);
+  else engancharInvitado();
+  window.__DEMO_ZOHO__ = true;
 })();
