@@ -6,7 +6,7 @@
 <title>Manejo masivo de bases de datos · Demo</title>
 <link rel="icon" type="image/png" href="data:,">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="estilos.css?v=demo12">
+<link rel="stylesheet" href="estilos.css?v=demo13">
 </head>
 <body class="es-demo">
 <div id="demo-banner" class="demo-banner" role="status" data-i18n="banner">Modo demo — datos ficticios · no es el sistema real</div>
@@ -500,31 +500,125 @@
 
       <section id="estados" class="pagina oculto">
         <h1 data-i18n="stmt.h1">Estados de cuenta</h1>
-        <p class="sub-oscuro" data-i18n="stmt.sub">Un correo por cuenta de la base de datos: mensaje, PDF y listado. Todo es inventado y no sale de esta demo.</p>
-        <div class="panel stmt-panel">
-          <label class="etiqueta" data-i18n="stmt.amount">Monto</label>
-          <div class="drop" id="drop-stmt-monto"></div>
-          <div class="oculto" id="stmt-monto-caja">
-            <label class="etiqueta" for="stmt-monto" data-i18n="stmt.more.label">Más de</label>
-            <input type="number" id="stmt-monto" min="0" step="1" placeholder="1000">
-          </div>
-          <label class="etiqueta" data-i18n="stmt.loop">Bucle / repetir</label>
-          <div class="drop" id="drop-stmt-bucle"></div>
-          <div class="stmt-extra oculto" id="stmt-bucle-caja">
-            <div>
-              <label class="etiqueta" data-i18n="stmt.day">Día</label>
-              <div class="drop" id="drop-stmt-dia"></div>
+        <p class="sub-oscuro" data-i18n="stmt.sub">El envío es un solo correo: mensaje + PDF + listado de pendientes, juntos. Lo automático es filtrar en la base de datos quién ya tiene saldo. Todo es inventado.</p>
+        <div class="cxc-entrada">
+          <div class="cxc-drop" id="cxc-drop">
+            <input type="file" id="cxc-archivo" accept=".xlsx,.xlsm,.csv,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" hidden>
+            <div class="cxc-drop-vacio" id="cxc-drop-vacio">
+              <strong data-i18n="stmt.drop.t">Lista nueva de correos</strong>
+              <span data-i18n="stmt.drop.p">Excel o foto, solo si hay que actualizar el correo. No hace falta para ver las cuentas de muestra.</span>
             </div>
-            <div>
-              <label class="etiqueta" for="stmt-hora" data-i18n="stmt.hour">Hora</label>
-              <input type="time" id="stmt-hora" value="09:00">
+            <div class="cxc-drop-archivo oculto" id="cxc-drop-archivo">
+              <img id="cxc-drop-thumb" alt="" class="oculto">
+              <div class="cxc-drop-icono oculto" id="cxc-drop-icono">xlsx</div>
+              <div class="cxc-drop-datos">
+                <strong id="cxc-drop-nombre"></strong>
+                <span id="cxc-drop-meta"></span>
+              </div>
+              <button type="button" class="cxc-quitar" id="cxc-quitar" data-i18n="stmt.drop.remove">Quitar</button>
             </div>
           </div>
-          <p class="stmt-resumen" id="stmt-resumen"></p>
-          <button type="button" class="btn rojo oculto" id="stmt-confirmar" data-i18n="stmt.confirm">Confirmar inicio de bucle</button>
-          <button type="button" class="btn borde" id="stmt-plantilla" data-i18n="stmt.edit">Editar plantilla de texto</button>
-          <button type="button" class="btn borde" id="stmt-ver" data-i18n="stmt.load">Ver cuentas de la base de datos</button>
-          <p class="stmt-lista" id="stmt-lista"></p>
+          <div class="cxc-filtro" id="cxc-filtro">
+            <strong data-i18n="stmt.filter.t">Cargar cuentas de la base de datos</strong>
+            <span data-i18n="stmt.filter.p">Mes o año. Un mes que ya cerró es todo el mes, o un rango que vos pongas.</span>
+            <label class="casilla">
+              <input type="checkbox" id="cxc-solo-pendiente" checked><span></span>
+              <div>
+                <strong data-i18n="stmt.only.t">Solo si tiene datos para enviar estado de cuenta</strong>
+                <small data-i18n="stmt.only.p">Cuentas de muestra con saldo pendiente en ese período.</small>
+              </div>
+            </label>
+            <div class="cxc-drops">
+              <div>
+                <label class="etiqueta" data-i18n="stmt.month">Mes o año</label>
+                <div class="drop" id="drop-cxc-mes"></div>
+              </div>
+              <div>
+                <label class="etiqueta" id="cxc-tiempo-etiqueta" data-i18n="stmt.time">Tiempo</label>
+                <div class="drop" id="drop-cxc-tiempo"></div>
+              </div>
+            </div>
+            <div class="cxc-rango oculto" id="cxc-rango-caja">
+              <div>
+                <label class="etiqueta" for="cxc-desde" data-i18n="stmt.from">Desde</label>
+                <input type="date" id="cxc-desde">
+              </div>
+              <div>
+                <label class="etiqueta" for="cxc-hasta" data-i18n="stmt.to">Hasta</label>
+                <input type="date" id="cxc-hasta">
+              </div>
+            </div>
+            <div class="cxc-monto" id="cxc-monto">
+              <div>
+                <label class="etiqueta" data-i18n="stmt.amount">Ordenar por monto</label>
+                <div class="drop" id="drop-cxc-monto"></div>
+              </div>
+              <div class="oculto" id="cxc-monto-caja">
+                <label class="etiqueta" for="cxc-monto-valor" id="cxc-monto-valor-etiqueta" data-i18n="stmt.more.label">Cantidad</label>
+                <input type="number" id="cxc-monto-valor" min="0" step="0.01" placeholder="Monto">
+              </div>
+            </div>
+            <div class="cxc-bucle" id="cxc-bucle">
+              <label class="etiqueta" data-i18n="stmt.loop">Bucle / repetir</label>
+              <div class="drop" id="drop-cxc-bucle"></div>
+              <div class="cxc-bucle-extra oculto" id="cxc-bucle-caja">
+                <div id="cxc-bucle-dia-caja">
+                  <label class="etiqueta" data-i18n="stmt.day">Día</label>
+                  <div class="drop" id="drop-cxc-bucle-dia"></div>
+                </div>
+                <div id="cxc-bucle-hora-caja">
+                  <label class="etiqueta" for="cxc-bucle-hora" data-i18n="stmt.hour">Hora</label>
+                  <input type="time" id="cxc-bucle-hora" value="08:00">
+                </div>
+              </div>
+              <p class="cxc-bucle-resumen" id="cxc-bucle-resumen"></p>
+              <button type="button" class="btn rojo oculto" id="cxc-bucle-confirmar" data-i18n="stmt.confirm">Confirmar inicio de bucle</button>
+              <button type="button" class="btn borde" id="cxc-plantilla" data-i18n="stmt.edit">Editar plantilla de texto</button>
+            </div>
+            <button type="button" class="btn rojo" id="cxc-filtrar" data-i18n="stmt.load">Cargar cuentas de la base de datos</button>
+          </div>
+        </div>
+        <div id="cxc-leyendo" class="trabajo-card leyendo oculto" aria-live="polite">
+          <div class="trabajo-cabeza">
+            <em class="hist-marca ejecutando" data-i18n="stmt.reading">Leyendo</em>
+            <strong id="cxc-leyendo-quien">Invitado</strong>
+          </div>
+          <p id="cxc-leyendo-accion" class="trabajo-accion"></p>
+          <p id="cxc-leyendo-detalle" class="trabajo-detalle"></p>
+          <p id="cxc-leyendo-avance" class="trabajo-avance"></p>
+          <p id="cxc-leyendo-eta" class="trabajo-eta"></p>
+        </div>
+        <p class="hist-estado oculto" id="cxc-estado" aria-live="polite"></p>
+        <div class="oculto" id="cxc-tabla-caja">
+          <h2 class="cxc-previa-titulo" data-i18n="stmt.preview">Vista previa</h2>
+          <p class="sub-oscuro" id="cxc-previa-ayuda" data-i18n="stmt.help">Poner correo solo anota el mail en la demo. Enviar estados de cuenta muestra el correo con PDF y listado. Nada sale de esta página.</p>
+          <div class="previa-tabla-caja">
+            <table class="hist-tabla">
+              <thead>
+                <tr>
+                  <th class="cxc-check-td">
+                    <label class="cxc-fila-check" title="Marcar o desmarcar todas">
+                      <input type="checkbox" id="cxc-marcar-todas" aria-label="Marcar o desmarcar todas"><span></span>
+                    </label>
+                  </th>
+                  <th data-i18n="stmt.col.company">Empresa</th>
+                  <th data-i18n="stmt.col.account">Cuenta en la base</th>
+                  <th data-i18n="stmt.col.official">Correo oficial (no se toca)</th>
+                  <th data-i18n="stmt.col.current">Correo que ya tiene</th>
+                  <th data-i18n="stmt.col.next">Correo que se le pondría</th>
+                  <th data-i18n="stmt.col.amount">Monto</th>
+                  <th data-i18n="stmt.col.what">Qué pasaría</th>
+                  <th data-i18n="stmt.col.pdf">Ver PDF</th>
+                  <th data-i18n="stmt.col.list">Ver listado</th>
+                </tr>
+              </thead>
+              <tbody id="cxc-filas"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="acciones oculto" id="cxc-acciones">
+          <button type="button" class="btn rojo" id="cxc-aplicar" data-i18n="stmt.apply">Poner correo</button>
+          <button type="button" class="btn borde" id="cxc-enviar" data-i18n="stmt.send">Enviar estados de cuenta</button>
         </div>
       </section>
 
@@ -616,17 +710,41 @@
     </div>
   </div>
 </div>
-<div id="stmt-plantilla-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="stmt-plantilla-titulo">
-  <div class="modal-card stmt-plantilla-card">
-    <h3 id="stmt-plantilla-titulo" data-i18n="stmt.template.t">Plantilla del correo</h3>
-    <p data-i18n="stmt.template.p">Este texto se pega en todos los correos de la demo. No se envía nada real.</p>
-    <label class="etiqueta" for="stmt-asunto" data-i18n="stmt.subject">Asunto</label>
-    <input id="stmt-asunto" maxlength="200" autocomplete="off">
-    <label class="etiqueta" for="stmt-cuerpo" data-i18n="stmt.body">Mensaje</label>
-    <textarea id="stmt-cuerpo" rows="8"></textarea>
+<div id="cxc-listado-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="cxc-listado-titulo">
+  <div class="modal-card previa-card">
+    <h3 id="cxc-listado-titulo" data-i18n="stmt.list.t">Listado pendiente</h3>
+    <p class="previa-resumen" id="cxc-listado-resumen"></p>
+    <div class="previa-tabla-caja">
+      <table class="hist-tabla previa-tabla">
+        <thead>
+          <tr>
+            <th data-i18n="stmt.inv.n">Factura</th>
+            <th data-i18n="stmt.inv.date">Fecha</th>
+            <th data-i18n="stmt.inv.due">Vence</th>
+            <th data-i18n="stmt.inv.total">Total</th>
+            <th data-i18n="stmt.col.amount">Saldo</th>
+            <th data-i18n="stmt.inv.state">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="cxc-listado-filas"></tbody>
+      </table>
+    </div>
     <div class="acciones derecha">
-      <button type="button" class="btn borde" id="stmt-plantilla-cerrar" data-i18n="modal.cancel">Cancelar</button>
-      <button type="button" class="btn rojo" id="stmt-plantilla-guardar" data-i18n="stmt.save">Guardar plantilla</button>
+      <button type="button" class="btn borde" id="cxc-listado-cerrar" data-i18n="modal.close">Cerrar</button>
+    </div>
+  </div>
+</div>
+<div id="cxc-plantilla-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="cxc-plantilla-titulo">
+  <div class="modal-card cxc-plantilla-card">
+    <h3 id="cxc-plantilla-titulo" data-i18n="stmt.template.t">Plantilla del correo</h3>
+    <p data-i18n="stmt.template.p">Este texto se pega en todos los estados de cuenta de la demo. El PDF y el listado van adjuntos igual. No se envía nada real.</p>
+    <label class="etiqueta" for="cxc-plantilla-asunto" data-i18n="stmt.subject">Asunto</label>
+    <input id="cxc-plantilla-asunto" maxlength="200" autocomplete="off">
+    <label class="etiqueta" for="cxc-plantilla-cuerpo" data-i18n="stmt.body">Mensaje</label>
+    <textarea id="cxc-plantilla-cuerpo" rows="10" maxlength="20000"></textarea>
+    <div class="acciones derecha">
+      <button type="button" class="btn borde" id="cxc-plantilla-cerrar" data-i18n="modal.cancel">Cancelar</button>
+      <button type="button" class="btn rojo" id="cxc-plantilla-guardar" data-i18n="stmt.save">Guardar plantilla</button>
     </div>
   </div>
 </div>
@@ -648,8 +766,8 @@
     </div>
   </div>
 </div>
-<script src="i18n.js?v=demo10"></script>
+<script src="i18n.js?v=demo11"></script>
 <script src="mock.js?v=demo3"></script>
-<script src="app.js?v=demo11"></script>
+<script src="app.js?v=demo12"></script>
 </body>
 </html>

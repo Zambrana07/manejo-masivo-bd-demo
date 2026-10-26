@@ -2712,18 +2712,29 @@ document.addEventListener("idioma-cambiado", async (evento) => {
   bloquearIdioma(false);
 });
 
-const STMT_CUENTAS = [
-  { nombre: "Cuenta muestra 1", correo: "aviso1@correo.falso", saldo: 820000 },
-  { nombre: "Cuenta muestra 2", correo: "dos@correo.falso", saldo: 150000 },
-  { nombre: "Cuenta muestra 3", correo: "tres@correo.falso", saldo: 0 },
-  { nombre: "Cuenta muestra 4", correo: "aviso4@correo.falso", saldo: 2400000 },
+const CXC_MUESTRA = [
+  { empresa: "Cuenta muestra 1", cuenta: "Cuenta muestra 1", oficial: "uno@correo.falso", cxc: "", correo: "aviso1@correo.falso", saldo: 820000 },
+  { empresa: "Cuenta muestra 2", cuenta: "Cuenta muestra 2", oficial: "dos@correo.falso", cxc: "dos@correo.falso", correo: "dos@correo.falso", saldo: 150000 },
+  { empresa: "Cuenta muestra 3", cuenta: "Cuenta muestra 3", oficial: "tres@correo.falso", cxc: "", correo: "", saldo: 0 },
+  { empresa: "Cuenta muestra 4", cuenta: "Cuenta muestra 4", oficial: "cuatro@correo.falso", cxc: "", correo: "aviso4@correo.falso", saldo: -12000 },
+  { empresa: "Cuenta muestra 5", cuenta: "Cuenta muestra 5", oficial: "cinco@correo.falso", cxc: "cinco@correo.falso", correo: "cobro5@correo.falso", saldo: 640000 },
+  { empresa: "Cuenta muestra 6", cuenta: "Cuenta muestra 6", oficial: "seis@correo.falso", cxc: "", correo: "aviso6@correo.falso", saldo: 2400000 },
 ];
 const STMT_DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
-let stmtMonto = "todos";
+const STMT_MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const STMT_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+let cxcMontoSel = "todos";
+let cxcMesSel = null;
+let cxcTiempoSel = null;
 let stmtCada = "no";
 let stmtDia = 1;
 let stmtActivo = null;
 let stmtPlantilla = "Hola:\n\nEste es un mensaje de muestra. El PDF y el listado van en el mismo correo.\n\nEquipo de muestra";
+let cxcFilas = [];
+
+function stmtMes(i) {
+  return (I18N.lang === "en" ? STMT_MONTHS : STMT_MESES)[i];
+}
 
 function stmtDias() {
   return I18N.lang === "en"
@@ -2731,13 +2742,60 @@ function stmtDias() {
     : STMT_DIAS;
 }
 
+function cxcIso(fecha) {
+  const y = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, "0");
+  const d = String(fecha.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function cxcOpcionesIzq() {
+  const hoy = new Date();
+  const lista = [{ tipo: "anio", label: t("stmt.year") }];
+  for (let i = 0; i < 12; i += 1) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const extra = d.getFullYear() !== hoy.getFullYear() ? ` ${d.getFullYear()}` : "";
+    lista.push({ tipo: "mes", year: d.getFullYear(), month: d.getMonth(), label: `${stmtMes(d.getMonth())}${extra}` });
+  }
+  return lista;
+}
+
+function cxcOpcionesDer(sel) {
+  const hoy = new Date();
+  if (!sel || sel.tipo === "anio") {
+    const ops = [];
+    for (let y = hoy.getFullYear(); y >= hoy.getFullYear() - 2; y -= 1) {
+      const fin = y === hoy.getFullYear() ? hoy : new Date(y, 11, 31);
+      ops.push({
+        modo: "anio",
+        label: String(y),
+        desde: cxcIso(new Date(y, 0, 1)),
+        hasta: cxcIso(fin),
+      });
+    }
+    return ops;
+  }
+  const actual = sel.year === hoy.getFullYear() && sel.month === hoy.getMonth();
+  const desde = cxcIso(new Date(sel.year, sel.month, 1));
+  const hasta = cxcIso(actual ? hoy : new Date(sel.year, sel.month + 1, 0));
+  const ops = [{
+    modo: "mes",
+    label: actual ? `${t("stmt.until")} (${hoy.getDate()} ${stmtMes(sel.month)})` : `${t("stmt.allMonth")} ${stmtMes(sel.month)}`,
+    desde,
+    hasta,
+  }];
+  ops.push({ modo: "personalizado", label: t("stmt.custom"), desde, hasta });
+  return ops;
+}
+
 function stmtCuerpo() {
   return {
     cada: stmtCada,
     dia: stmtDia,
-    hora: $("stmt-hora")?.value || "09:00",
-    monto: stmtMonto,
-    valor: $("stmt-monto")?.value || "",
+    hora: $("cxc-bucle-hora")?.value || "08:00",
+    monto: cxcMontoSel,
+    valor: $("cxc-monto-valor")?.value || "",
+    periodo: cxcTiempoSel?.label || "",
   };
 }
 
@@ -2751,12 +2809,54 @@ function stmtDifiere() {
     || String(ahora.valor) !== String(stmtActivo.valor);
 }
 
+function cxcSaldoOk(n) {
+  const tope = Number($("cxc-monto-valor")?.value);
+  if ($("cxc-solo-pendiente")?.checked && n <= 0 && cxcMontoSel === "todos") return false;
+  if (cxcMontoSel === "cero") return n === 0;
+  if (cxcMontoSel === "negativo") return n < 0;
+  if (cxcMontoSel === "menos") return String($("cxc-monto-valor")?.value || "") === "" || (Number.isFinite(tope) && n < tope);
+  if (cxcMontoSel === "mas") return String($("cxc-monto-valor")?.value || "") === "" || (Number.isFinite(tope) && n > tope);
+  return true;
+}
+
+function cxcQue(fila) {
+  if (!fila.correo) return { clase: "cxc-estado-mal", texto: t("stmt.missing") };
+  if ((fila.cxc || "").toLowerCase() === fila.correo.toLowerCase()) return { clase: "cxc-estado-igual", texto: t("stmt.same") };
+  return { clase: "cxc-estado-cambiar", texto: t("stmt.change") };
+}
+
+function pintarTablaCxc() {
+  const cuerpo = $("cxc-filas");
+  if (!cuerpo) return;
+  cuerpo.innerHTML = "";
+  cxcFilas.filter((f) => cxcSaldoOk(f.saldo)).forEach((fila) => {
+    const que = cxcQue(fila);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="cxc-check-td"><label class="cxc-fila-check"><input type="checkbox" checked><span></span></label></td>
+      <td>${fila.empresa}</td><td>${fila.cuenta}</td><td>${fila.oficial}</td><td>${fila.cxc || "—"}</td><td>${fila.correo || "—"}</td>
+      <td>${fila.saldo.toLocaleString("es-CR")}</td><td class="${que.clase}">${que.texto}</td>
+      <td class="cxc-ver-td"><button type="button" class="cxc-ver" data-pdf="${fila.empresa}">PDF</button></td>
+      <td class="cxc-ver-td"><button type="button" class="cxc-ver" data-lista="${fila.empresa}" data-saldo="${fila.saldo}">${t("stmt.col.list")}</button></td>`;
+    cuerpo.append(tr);
+  });
+  if (!cuerpo.children.length) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="10">${t("stmt.empty")}</td>`;
+    cuerpo.append(tr);
+  }
+}
+
 function pintarStmt() {
   const pide = stmtCada !== "no" && stmtDifiere();
-  $("stmt-bucle-caja")?.classList.toggle("oculto", stmtCada === "no");
-  $("stmt-monto-caja")?.classList.toggle("oculto", stmtMonto !== "mas");
-  $("stmt-confirmar")?.classList.toggle("oculto", !pide);
-  const resumen = $("stmt-resumen");
+  $("cxc-bucle-caja")?.classList.toggle("oculto", stmtCada === "no" || stmtCada === "hora");
+  $("cxc-bucle-dia-caja")?.classList.toggle("oculto", stmtCada !== "semana");
+  $("cxc-bucle-hora-caja")?.classList.toggle("oculto", stmtCada === "no");
+  $("cxc-monto-caja")?.classList.toggle("oculto", cxcMontoSel !== "mas" && cxcMontoSel !== "menos");
+  if ($("cxc-monto-valor-etiqueta")) {
+    $("cxc-monto-valor-etiqueta").textContent = cxcMontoSel === "menos" ? t("stmt.less").replace("…", "") : t("stmt.more.label");
+  }
+  $("cxc-bucle-confirmar")?.classList.toggle("oculto", !pide);
+  const resumen = $("cxc-bucle-resumen");
   if (!resumen) return;
   if (!stmtActivo) resumen.textContent = pide ? t("stmt.pending") : "";
   else if (pide) resumen.textContent = t("stmt.changed");
@@ -2771,23 +2871,53 @@ function pintarStmt() {
   item?.classList.toggle("vigilando", Boolean(stmtActivo));
 }
 
+function armarTiempoCxc(reset) {
+  const ops = cxcOpcionesDer(cxcMesSel);
+  if (reset || !cxcTiempoSel) cxcTiempoSel = ops[0];
+  else cxcTiempoSel = ops.find((o) => o.modo === cxcTiempoSel.modo) || ops[0];
+  $("cxc-rango-caja")?.classList.toggle("oculto", cxcTiempoSel.modo !== "personalizado");
+  if (cxcTiempoSel.modo === "personalizado") {
+    if ($("cxc-desde")) $("cxc-desde").value = cxcTiempoSel.desde;
+    if ($("cxc-hasta")) $("cxc-hasta").value = cxcTiempoSel.hasta;
+  }
+  if ($("cxc-tiempo-etiqueta")) $("cxc-tiempo-etiqueta").textContent = cxcMesSel?.tipo === "anio" ? t("stmt.year") : t("stmt.time");
+  armarDrop("drop-cxc-tiempo", ops.map((o) => o.label), cxcTiempoSel.label, (valor) => {
+    cxcTiempoSel = ops.find((o) => o.label === valor) || ops[0];
+    $("cxc-rango-caja")?.classList.toggle("oculto", cxcTiempoSel.modo !== "personalizado");
+    pintarStmt();
+  }, { arriba: true });
+}
+
 function armarStmt() {
-  if (!$("drop-stmt-bucle")) return;
+  if (!$("drop-cxc-bucle")) return;
+  const izq = cxcOpcionesIzq();
+  if (!cxcMesSel) cxcMesSel = izq.find((x) => x.tipo === "mes") || izq[0];
+  else cxcMesSel = izq.find((x) => x.label === cxcMesSel.label) || izq.find((x) => x.tipo === "mes") || izq[0];
+  armarDrop("drop-cxc-mes", izq.map((m) => m.label), cxcMesSel.label, (valor) => {
+    cxcMesSel = izq.find((m) => m.label === valor) || izq[0];
+    armarTiempoCxc(true);
+    pintarStmt();
+  }, { arriba: true });
+  armarTiempoCxc(false);
   const montos = [
     { id: "todos", label: t("stmt.all") },
+    { id: "cero", label: t("stmt.zero") },
+    { id: "negativo", label: t("stmt.neg") },
+    { id: "menos", label: t("stmt.less") },
     { id: "mas", label: t("stmt.more") },
   ];
-  const actualMonto = montos.find((o) => o.id === stmtMonto) || montos[0];
-  armarDrop("drop-stmt-monto", montos.map((o) => o.label), actualMonto.label, (valor) => {
-    stmtMonto = (montos.find((o) => o.label === valor) || montos[0]).id;
+  const actualMonto = montos.find((o) => o.id === cxcMontoSel) || montos[0];
+  armarDrop("drop-cxc-monto", montos.map((o) => o.label), actualMonto.label, (valor) => {
+    cxcMontoSel = (montos.find((o) => o.label === valor) || montos[0]).id;
     pintarStmt();
+    if (!$("cxc-tabla-caja")?.classList.contains("oculto")) pintarTablaCxc();
   }, { arriba: true });
   const bucles = [
     { id: "no", label: t("stmt.none") },
     { id: "semana", label: t("stmt.week") },
   ];
   const actual = bucles.find((o) => o.id === stmtCada) || bucles[0];
-  armarDrop("drop-stmt-bucle", bucles.map((o) => o.label), actual.label, (valor) => {
+  armarDrop("drop-cxc-bucle", bucles.map((o) => o.label), actual.label, (valor) => {
     stmtCada = (bucles.find((o) => o.label === valor) || bucles[0]).id;
     if (stmtCada === "no") stmtActivo = null;
     pintarStmt();
@@ -2798,50 +2928,99 @@ function armarStmt() {
 }
 
 function armarStmtDia() {
-  if (!$("drop-stmt-dia")) return;
+  if (!$("drop-cxc-bucle-dia")) return;
   const dias = stmtDias();
-  armarDrop("drop-stmt-dia", dias, dias[stmtDia] || dias[0], (valor) => {
+  armarDrop("drop-cxc-bucle-dia", dias, dias[stmtDia] || dias[0], (valor) => {
     stmtDia = Math.max(0, dias.indexOf(valor));
     pintarStmt();
   }, { arriba: true });
 }
 
-function verCuentasStmt() {
-  const lista = $("stmt-lista");
-  if (!lista) return;
-  const tope = Number($("stmt-monto")?.value);
-  const filas = STMT_CUENTAS.filter((c) => stmtMonto !== "mas" || (Number.isFinite(tope) && c.saldo > tope));
-  lista.textContent = filas.length
-    ? `${t("stmt.rows")}\n${filas.map((c) => `${c.nombre} · ${c.correo} · ${c.saldo}`).join("\n")}`
-    : t("stmt.empty");
+function cargarCuentasCxc() {
+  const card = $("cxc-leyendo");
+  card?.classList.remove("oculto");
+  if ($("cxc-leyendo-accion")) $("cxc-leyendo-accion").textContent = t("stmt.load");
+  if ($("cxc-leyendo-detalle")) $("cxc-leyendo-detalle").textContent = `${CXC_MUESTRA.length} ${t("stmt.rows").toLowerCase()}`;
+  if ($("cxc-leyendo-eta")) $("cxc-leyendo-eta").textContent = t("stmt.reading");
+  setTimeout(() => {
+    card?.classList.add("oculto");
+    cxcFilas = CXC_MUESTRA.map((f) => ({ ...f }));
+    $("cxc-tabla-caja")?.classList.remove("oculto");
+    $("cxc-acciones")?.classList.remove("oculto");
+    pintarTablaCxc();
+  }, 700);
 }
 
-if ($("stmt-confirmar")) {
-  $("stmt-confirmar").onclick = () => {
-    if (stmtMonto === "mas" && !String($("stmt-monto")?.value || "").trim()) return;
+if ($("cxc-bucle-confirmar")) {
+  $("cxc-bucle-confirmar").onclick = () => {
+    if ((cxcMontoSel === "mas" || cxcMontoSel === "menos") && !String($("cxc-monto-valor")?.value || "").trim()) return;
     stmtActivo = stmtCuerpo();
     pintarStmt();
     mostrarToast(t("stmt.confirm"), t("stmt.running"));
   };
 }
-if ($("stmt-ver")) $("stmt-ver").onclick = () => verCuentasStmt();
-if ($("stmt-hora")) $("stmt-hora").onchange = () => pintarStmt();
-if ($("stmt-monto")) $("stmt-monto").oninput = () => pintarStmt();
-if ($("stmt-plantilla")) {
-  $("stmt-plantilla").onclick = () => {
-    if ($("stmt-asunto") && !$("stmt-asunto").value) $("stmt-asunto").value = t("stmt.h1");
-    if ($("stmt-cuerpo")) $("stmt-cuerpo").value = stmtPlantilla;
-    $("stmt-plantilla-modal")?.classList.remove("oculto");
+if ($("cxc-filtrar")) $("cxc-filtrar").onclick = () => cargarCuentasCxc();
+if ($("cxc-bucle-hora")) $("cxc-bucle-hora").onchange = () => pintarStmt();
+if ($("cxc-monto-valor")) $("cxc-monto-valor").oninput = () => {
+  pintarStmt();
+  if (!$("cxc-tabla-caja")?.classList.contains("oculto")) pintarTablaCxc();
+};
+if ($("cxc-solo-pendiente")) $("cxc-solo-pendiente").onchange = () => {
+  if (!$("cxc-tabla-caja")?.classList.contains("oculto")) pintarTablaCxc();
+};
+if ($("cxc-filas")) {
+  $("cxc-filas").onclick = (e) => {
+    const pdf = e.target.closest("[data-pdf]");
+    const lista = e.target.closest("[data-lista]");
+    if (pdf) mostrarToast(pdf.dataset.pdf, t("stmt.pdfNote"));
+    if (lista) {
+      if ($("cxc-listado-resumen")) $("cxc-listado-resumen").textContent = `${lista.dataset.lista} · ${lista.dataset.saldo}`;
+      if ($("cxc-listado-filas")) {
+        $("cxc-listado-filas").innerHTML = `<tr><td>M-1001</td><td>2026-10-02</td><td>2026-11-02</td><td>${lista.dataset.saldo}</td><td>${lista.dataset.saldo}</td><td>${t("stmt.pendingState")}</td></tr>`;
+      }
+      $("cxc-listado-modal")?.classList.remove("oculto");
+    }
   };
 }
-if ($("stmt-plantilla-cerrar")) {
-  $("stmt-plantilla-cerrar").onclick = () => $("stmt-plantilla-modal")?.classList.add("oculto");
+if ($("cxc-listado-cerrar")) $("cxc-listado-cerrar").onclick = () => $("cxc-listado-modal")?.classList.add("oculto");
+if ($("cxc-aplicar")) $("cxc-aplicar").onclick = () => mostrarToast(t("stmt.apply"), t("stmt.help"));
+if ($("cxc-enviar")) $("cxc-enviar").onclick = () => mostrarToast(t("stmt.send"), t("stmt.sentNote"));
+if ($("cxc-plantilla")) {
+  $("cxc-plantilla").onclick = () => {
+    if ($("cxc-plantilla-asunto") && !$("cxc-plantilla-asunto").value) $("cxc-plantilla-asunto").value = t("stmt.h1");
+    if ($("cxc-plantilla-cuerpo")) $("cxc-plantilla-cuerpo").value = stmtPlantilla;
+    $("cxc-plantilla-modal")?.classList.remove("oculto");
+  };
 }
-if ($("stmt-plantilla-guardar")) {
-  $("stmt-plantilla-guardar").onclick = () => {
-    stmtPlantilla = $("stmt-cuerpo")?.value || stmtPlantilla;
-    $("stmt-plantilla-modal")?.classList.add("oculto");
+if ($("cxc-plantilla-cerrar")) $("cxc-plantilla-cerrar").onclick = () => $("cxc-plantilla-modal")?.classList.add("oculto");
+if ($("cxc-plantilla-guardar")) {
+  $("cxc-plantilla-guardar").onclick = () => {
+    stmtPlantilla = $("cxc-plantilla-cuerpo")?.value || stmtPlantilla;
+    $("cxc-plantilla-modal")?.classList.add("oculto");
     mostrarToast(t("stmt.saved"), t("stmt.saved.p"));
+  };
+}
+if ($("cxc-drop")) {
+  $("cxc-drop").onclick = (e) => {
+    if (e.target.closest("#cxc-quitar")) {
+      $("cxc-drop-vacio")?.classList.remove("oculto");
+      $("cxc-drop-archivo")?.classList.add("oculto");
+      $("cxc-drop")?.classList.remove("con-archivo");
+      return;
+    }
+    $("cxc-archivo")?.click();
+  };
+}
+if ($("cxc-archivo")) {
+  $("cxc-archivo").onchange = () => {
+    const archivo = $("cxc-archivo").files?.[0];
+    if (!archivo) return;
+    $("cxc-drop-vacio")?.classList.add("oculto");
+    $("cxc-drop-archivo")?.classList.remove("oculto");
+    $("cxc-drop")?.classList.add("con-archivo");
+    if ($("cxc-drop-nombre")) $("cxc-drop-nombre").textContent = archivo.name;
+    if ($("cxc-drop-meta")) $("cxc-drop-meta").textContent = t("stmt.drop.p");
+    $("cxc-drop-icono")?.classList.remove("oculto");
   };
 }
 if ($("bucle-global")) {
