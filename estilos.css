@@ -183,6 +183,18 @@ input::placeholder { color: rgba(255,255,255,.4); }
   width: 8px; height: 8px; border-radius: 50%; background: #ffb3b0;
   box-shadow: 0 0 0 0 rgba(255,179,176,.55); animation: latido 1.6s infinite;
 }
+.stmt-panel { max-width: 460px; display: grid; gap: 8px; }
+.stmt-panel .etiqueta { margin: 8px 0 0; }
+.stmt-panel input, .stmt-plantilla-card input, .stmt-plantilla-card textarea {
+  width: 100%; color: var(--texto); font: inherit;
+  background: var(--vidrio); border: 1px solid var(--vidrio-borde);
+  border-radius: 14px; padding: 12px 14px;
+}
+.stmt-extra { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stmt-resumen, .stmt-lista { margin: 8px 0 0; color: var(--texto-suave); font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+.stmt-resumen:empty, .stmt-lista:empty { display: none; }
+.stmt-plantilla-card { width: min(560px, 94vw); }
+.stmt-plantilla-card textarea { min-height: 180px; resize: vertical; }
 .item.vigilando { color: #ffb3b0; }
 .item.vigilando::after {
   content: ""; position: absolute; right: 14px; top: 50%; width: 8px; height: 8px; margin-top: -4px;

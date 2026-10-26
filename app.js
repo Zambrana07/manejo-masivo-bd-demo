@@ -2711,3 +2711,141 @@ document.addEventListener("idioma-cambiado", async (evento) => {
   idiomaAnimando = false;
   bloquearIdioma(false);
 });
+
+const STMT_CUENTAS = [
+  { nombre: "Cuenta muestra 1", correo: "aviso1@correo.falso", saldo: 820000 },
+  { nombre: "Cuenta muestra 2", correo: "dos@correo.falso", saldo: 150000 },
+  { nombre: "Cuenta muestra 3", correo: "tres@correo.falso", saldo: 0 },
+  { nombre: "Cuenta muestra 4", correo: "aviso4@correo.falso", saldo: 2400000 },
+];
+const STMT_DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+let stmtMonto = "todos";
+let stmtCada = "no";
+let stmtDia = 1;
+let stmtActivo = null;
+let stmtPlantilla = "Hola:\n\nEste es un mensaje de muestra. El PDF y el listado van en el mismo correo.\n\nEquipo de muestra";
+
+function stmtDias() {
+  return I18N.lang === "en"
+    ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    : STMT_DIAS;
+}
+
+function stmtCuerpo() {
+  return {
+    cada: stmtCada,
+    dia: stmtDia,
+    hora: $("stmt-hora")?.value || "09:00",
+    monto: stmtMonto,
+    valor: $("stmt-monto")?.value || "",
+  };
+}
+
+function stmtDifiere() {
+  if (!stmtActivo) return stmtCada !== "no";
+  const ahora = stmtCuerpo();
+  return ahora.cada !== stmtActivo.cada
+    || Number(ahora.dia) !== Number(stmtActivo.dia)
+    || ahora.hora !== stmtActivo.hora
+    || ahora.monto !== stmtActivo.monto
+    || String(ahora.valor) !== String(stmtActivo.valor);
+}
+
+function pintarStmt() {
+  const pide = stmtCada !== "no" && stmtDifiere();
+  $("stmt-bucle-caja")?.classList.toggle("oculto", stmtCada === "no");
+  $("stmt-monto-caja")?.classList.toggle("oculto", stmtMonto !== "mas");
+  $("stmt-confirmar")?.classList.toggle("oculto", !pide);
+  const resumen = $("stmt-resumen");
+  if (!resumen) return;
+  if (!stmtActivo) resumen.textContent = pide ? t("stmt.pending") : "";
+  else if (pide) resumen.textContent = t("stmt.changed");
+  else resumen.textContent = `${t("stmt.running")} · ${stmtDias()[stmtActivo.dia] || ""} ${stmtActivo.hora}`;
+  const badge = $("bucle-global");
+  const item = document.querySelector('.item[data-pagina="estados"]');
+  const prendido = Boolean(stmtActivo) && !stmtDifiere();
+  badge?.classList.toggle("oculto", !prendido);
+  if (prendido && $("bucle-global-texto")) {
+    $("bucle-global-texto").textContent = `${t("bar.loop")} · ${stmtDias()[stmtActivo.dia]} ${stmtActivo.hora}`;
+  }
+  item?.classList.toggle("vigilando", Boolean(stmtActivo));
+}
+
+function armarStmt() {
+  if (!$("drop-stmt-bucle")) return;
+  const montos = [
+    { id: "todos", label: t("stmt.all") },
+    { id: "mas", label: t("stmt.more") },
+  ];
+  const actualMonto = montos.find((o) => o.id === stmtMonto) || montos[0];
+  armarDrop("drop-stmt-monto", montos.map((o) => o.label), actualMonto.label, (valor) => {
+    stmtMonto = (montos.find((o) => o.label === valor) || montos[0]).id;
+    pintarStmt();
+  }, { arriba: true });
+  const bucles = [
+    { id: "no", label: t("stmt.none") },
+    { id: "semana", label: t("stmt.week") },
+  ];
+  const actual = bucles.find((o) => o.id === stmtCada) || bucles[0];
+  armarDrop("drop-stmt-bucle", bucles.map((o) => o.label), actual.label, (valor) => {
+    stmtCada = (bucles.find((o) => o.label === valor) || bucles[0]).id;
+    if (stmtCada === "no") stmtActivo = null;
+    pintarStmt();
+    armarStmtDia();
+  }, { arriba: true });
+  armarStmtDia();
+  pintarStmt();
+}
+
+function armarStmtDia() {
+  if (!$("drop-stmt-dia")) return;
+  const dias = stmtDias();
+  armarDrop("drop-stmt-dia", dias, dias[stmtDia] || dias[0], (valor) => {
+    stmtDia = Math.max(0, dias.indexOf(valor));
+    pintarStmt();
+  }, { arriba: true });
+}
+
+function verCuentasStmt() {
+  const lista = $("stmt-lista");
+  if (!lista) return;
+  const tope = Number($("stmt-monto")?.value);
+  const filas = STMT_CUENTAS.filter((c) => stmtMonto !== "mas" || (Number.isFinite(tope) && c.saldo > tope));
+  lista.textContent = filas.length
+    ? `${t("stmt.rows")}\n${filas.map((c) => `${c.nombre} · ${c.correo} · ${c.saldo}`).join("\n")}`
+    : t("stmt.empty");
+}
+
+if ($("stmt-confirmar")) {
+  $("stmt-confirmar").onclick = () => {
+    if (stmtMonto === "mas" && !String($("stmt-monto")?.value || "").trim()) return;
+    stmtActivo = stmtCuerpo();
+    pintarStmt();
+    mostrarToast(t("stmt.confirm"), t("stmt.running"));
+  };
+}
+if ($("stmt-ver")) $("stmt-ver").onclick = () => verCuentasStmt();
+if ($("stmt-hora")) $("stmt-hora").onchange = () => pintarStmt();
+if ($("stmt-monto")) $("stmt-monto").oninput = () => pintarStmt();
+if ($("stmt-plantilla")) {
+  $("stmt-plantilla").onclick = () => {
+    if ($("stmt-asunto") && !$("stmt-asunto").value) $("stmt-asunto").value = t("stmt.h1");
+    if ($("stmt-cuerpo")) $("stmt-cuerpo").value = stmtPlantilla;
+    $("stmt-plantilla-modal")?.classList.remove("oculto");
+  };
+}
+if ($("stmt-plantilla-cerrar")) {
+  $("stmt-plantilla-cerrar").onclick = () => $("stmt-plantilla-modal")?.classList.add("oculto");
+}
+if ($("stmt-plantilla-guardar")) {
+  $("stmt-plantilla-guardar").onclick = () => {
+    stmtPlantilla = $("stmt-cuerpo")?.value || stmtPlantilla;
+    $("stmt-plantilla-modal")?.classList.add("oculto");
+    mostrarToast(t("stmt.saved"), t("stmt.saved.p"));
+  };
+}
+if ($("bucle-global")) {
+  $("bucle-global").onclick = () => irA("estados");
+}
+document.addEventListener("idioma-cambiado", () => armarStmt());
+armarStmt();

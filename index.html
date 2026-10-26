@@ -6,7 +6,7 @@
 <title>Manejo masivo de bases de datos · Demo</title>
 <link rel="icon" type="image/png" href="data:,">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="estilos.css?v=demo11">
+<link rel="stylesheet" href="estilos.css?v=demo12">
 </head>
 <body class="es-demo">
 <div id="demo-banner" class="demo-banner" role="status" data-i18n="banner">Modo demo — datos ficticios · no es el sistema real</div>
@@ -51,6 +51,9 @@
     </div>
     <div class="barra-der">
       <button type="button" class="btn-idioma btn-idioma-barra" aria-label="Cambiar idioma a inglés">English</button>
+      <button type="button" class="vig-global oculto" id="bucle-global" title="Ir a estados de cuenta" data-i18n-title="stmt.badge.title" aria-live="polite">
+        <i></i><span id="bucle-global-texto" data-i18n="bar.loop">Bucle activo</span>
+      </button>
       <button type="button" class="vig-global oculto" id="vig-global" title="Ir al vigilante" aria-live="polite">
         <i></i><span id="vig-global-texto" data-i18n="bar.watch">Vigilante activo</span>
       </button>
@@ -75,6 +78,9 @@
       <button type="button" data-pagina="vigilante" class="item" title="vigilante"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
         <span class="item-texto" data-i18n="menu.watch">vigilante</span></button>
+      <button type="button" data-pagina="estados" class="item" title="estados de cuenta"><i></i>
+        <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg>
+        <span class="item-texto" data-i18n="menu.stmt">estados de cuenta</span></button>
       <button type="button" data-pagina="historial" class="item" title="Historial"><i></i>
         <svg class="item-icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
         <span class="item-texto" data-i18n="menu.hist">Historial</span></button>
@@ -109,6 +115,7 @@
               <button type="button" class="btn rojo" data-ir="cambios" data-i18n="home.go.bulk">Ir a cambios-masivos</button>
               <button type="button" class="btn borde" data-ir="compuestos" data-i18n="home.go.kits">Ir a artículos compuestos</button>
               <button type="button" class="btn borde" data-ir="vigilante" data-i18n="home.go.watch">Ir a vigilante</button>
+              <button type="button" class="btn borde" data-ir="estados" data-i18n="home.go.stmt">Ir a estados de cuenta</button>
             </div>
           </div>
 
@@ -491,6 +498,36 @@
         </div>
       </section>
 
+      <section id="estados" class="pagina oculto">
+        <h1 data-i18n="stmt.h1">Estados de cuenta</h1>
+        <p class="sub-oscuro" data-i18n="stmt.sub">Un correo por cuenta de la base de datos: mensaje, PDF y listado. Todo es inventado y no sale de esta demo.</p>
+        <div class="panel stmt-panel">
+          <label class="etiqueta" data-i18n="stmt.amount">Monto</label>
+          <div class="drop" id="drop-stmt-monto"></div>
+          <div class="oculto" id="stmt-monto-caja">
+            <label class="etiqueta" for="stmt-monto" data-i18n="stmt.more.label">Más de</label>
+            <input type="number" id="stmt-monto" min="0" step="1" placeholder="1000">
+          </div>
+          <label class="etiqueta" data-i18n="stmt.loop">Bucle / repetir</label>
+          <div class="drop" id="drop-stmt-bucle"></div>
+          <div class="stmt-extra oculto" id="stmt-bucle-caja">
+            <div>
+              <label class="etiqueta" data-i18n="stmt.day">Día</label>
+              <div class="drop" id="drop-stmt-dia"></div>
+            </div>
+            <div>
+              <label class="etiqueta" for="stmt-hora" data-i18n="stmt.hour">Hora</label>
+              <input type="time" id="stmt-hora" value="09:00">
+            </div>
+          </div>
+          <p class="stmt-resumen" id="stmt-resumen"></p>
+          <button type="button" class="btn rojo oculto" id="stmt-confirmar" data-i18n="stmt.confirm">Confirmar inicio de bucle</button>
+          <button type="button" class="btn borde" id="stmt-plantilla" data-i18n="stmt.edit">Editar plantilla de texto</button>
+          <button type="button" class="btn borde" id="stmt-ver" data-i18n="stmt.load">Ver cuentas de la base de datos</button>
+          <p class="stmt-lista" id="stmt-lista"></p>
+        </div>
+      </section>
+
       <div class="pie-espacio"></div>
       <footer class="pie">
         <div class="pie-cuerpo">
@@ -579,6 +616,20 @@
     </div>
   </div>
 </div>
+<div id="stmt-plantilla-modal" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="stmt-plantilla-titulo">
+  <div class="modal-card stmt-plantilla-card">
+    <h3 id="stmt-plantilla-titulo" data-i18n="stmt.template.t">Plantilla del correo</h3>
+    <p data-i18n="stmt.template.p">Este texto se pega en todos los correos de la demo. No se envía nada real.</p>
+    <label class="etiqueta" for="stmt-asunto" data-i18n="stmt.subject">Asunto</label>
+    <input id="stmt-asunto" maxlength="200" autocomplete="off">
+    <label class="etiqueta" for="stmt-cuerpo" data-i18n="stmt.body">Mensaje</label>
+    <textarea id="stmt-cuerpo" rows="8"></textarea>
+    <div class="acciones derecha">
+      <button type="button" class="btn borde" id="stmt-plantilla-cerrar" data-i18n="modal.cancel">Cancelar</button>
+      <button type="button" class="btn rojo" id="stmt-plantilla-guardar" data-i18n="stmt.save">Guardar plantilla</button>
+    </div>
+  </div>
+</div>
 <div id="aviso-modal" class="modal oculto">
   <div class="modal-card aviso-card" id="aviso-card">
     <div class="aviso-icono" id="aviso-icono" aria-hidden="true">
@@ -597,8 +648,8 @@
     </div>
   </div>
 </div>
-<script src="i18n.js?v=demo9"></script>
+<script src="i18n.js?v=demo10"></script>
 <script src="mock.js?v=demo3"></script>
-<script src="app.js?v=demo10"></script>
+<script src="app.js?v=demo11"></script>
 </body>
 </html>
