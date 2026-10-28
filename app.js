@@ -907,15 +907,15 @@ $("indice-actualizar").onclick = async () => {
   }
   const n = estimado != null ? Number(estimado).toLocaleString(loc()) : "847 291";
   const cuotaTxt = restan != null
-    ? `Cupo demo: quedan ${Number(restan).toLocaleString(loc())}${limite != null ? ` de ${Number(limite).toLocaleString(loc())}` : ""} llamadas.`
-    : "No se pudo leer la cuota en este momento.";
+    ? t("cost.quotaNow", {
+        restan: Number(restan).toLocaleString(loc()),
+        of: limite != null ? t("cost.of", { n: Number(limite).toLocaleString(loc()) }) : "",
+      })
+    : t("cost.noQuota");
   const ok = await confirmarAviso(
-    "Actualizar datos del catálogo",
-    `Esto vuelve a leer todo el catálogo. Costo estimado (fórmula demo irreal): ≈ ${n} llamadas a la API (páginas×8 821 + overhead 12 840). ${cuotaTxt}`,
-    [
-      "El número es ilustrativo: muestra que la app puede estimar el gasto de API antes de ejecutar.",
-      "No escribe cambios en los artículos; solo lee (simulado).",
-    ],
+    t("cost.refreshT"),
+    t("cost.refreshP", { n, quota: cuotaTxt }),
+    [t("cost.note1"), t("cost.note2")],
   );
   if (!ok) return;
   indiceErrorVisto = "";
@@ -1128,19 +1128,23 @@ function resumen() {
   return lineas.join("\n");
 }
 
+let costoModal = null;
+let revertirCostoN = "";
+
 function textoCosto(costo) {
   if (!costo) return "";
   const n = Number(costo.llamadas || 0).toLocaleString(loc());
-  const formula = costo.formula || "artículos × 847 + páginas × 128 + overhead";
+  const formula = costo.formula || "n×847 + overhead";
   let base = costo.llamadas
-    ? `Costo estimado: ${n} llamadas a la API (fórmula demo: ${formula}).`
-    : "Costo estimado: 0 llamadas a la API.";
-  if (costo.detalle) base += ` ${costo.detalle}`;
+    ? t("cost.est", { n, formula })
+    : t("cost.zero");
+  if (costo.detalle) base += ` ${t("cost.fake")}`;
   if (costo.restan != null) {
     const restan = Number(costo.restan).toLocaleString(loc());
-    const limite = costo.limite != null ? ` de ${Number(costo.limite).toLocaleString(loc())}` : "";
-    const despues = Math.max(0, Number(costo.restan) - Number(costo.llamadas || 0));
-    base += ` Cupo demo: quedan ${restan}${limite}; después quedarían unas ${despues.toLocaleString(loc())}.`;
+    const despues = Math.max(0, Number(costo.restan) - Number(costo.llamadas || 0)).toLocaleString(loc());
+    base += costo.limite != null
+      ? ` ${t("cost.quota", { restan, limite: Number(costo.limite).toLocaleString(loc()), despues })}`
+      : ` ${t("cost.quotaShort", { restan, despues })}`;
   }
   return base;
 }
@@ -1158,9 +1162,10 @@ async function costoActual() {
 
 async function abrirConfirmacion(costo) {
   $("modal-texto").textContent = resumen();
-  $("modal-costo").textContent = "Calculando el costo…";
+  $("modal-costo").textContent = t("cost.calc");
   $("modal").classList.remove("oculto");
-  $("modal-costo").textContent = textoCosto(costo === undefined ? await costoActual() : costo);
+  costoModal = costo === undefined ? await costoActual() : costo;
+  $("modal-costo").textContent = textoCosto(costoModal);
 }
 
 $("aplicar").onclick = () => {
@@ -1461,8 +1466,8 @@ async function pedirReversion(id) {
   $("revertir-texto").textContent =
     `Se van a devolver ${datos.articulos.toLocaleString(loc())} artículos a su valor de antes.\nCambio: ${datos.accion}`;
   const llamadasFake = (Number(datos.articulos) || 0) * 847 + 12840;
-  $("revertir-costo").textContent =
-    `Costo estimado: ${llamadasFake.toLocaleString(loc())} llamadas a la API (fórmula demo: n×847 + 12 840). Cálculo ilustrativo.`;
+  revertirCostoN = llamadasFake.toLocaleString(loc());
+  $("revertir-costo").textContent = t("cost.revert", { n: revertirCostoN });
   $("revertir-modal").classList.remove("oculto");
 }
 $("revertir").onclick = () => pedirReversion($("revertir").dataset.id);
@@ -2644,6 +2649,12 @@ function refrescarTextosJs() {
     }
   }
   if (ultimaPrevia && !$("previa-modal")?.classList.contains("oculto")) pintarVistaPrevia(ultimaPrevia);
+  if (costoModal && $("modal") && !$("modal").classList.contains("oculto")) {
+    $("modal-costo").textContent = textoCosto(costoModal);
+  }
+  if (revertirCostoN && $("revertir-modal") && !$("revertir-modal").classList.contains("oculto")) {
+    $("revertir-costo").textContent = t("cost.revert", { n: revertirCostoN });
+  }
   const miga = $("miga");
   const activo = document.querySelector(".item.activo .item-texto");
   if (miga && activo) miga.textContent = activo.textContent.trim();
